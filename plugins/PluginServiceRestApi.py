@@ -8,12 +8,12 @@ Simple wrapper around the PluginService providing, yes, a REST API
 '''
 from PluginService import PluginService, PluginServiceError
 #from bottle import abort, get, put, post, delete, request, run
-from bottle import Bottle, run
+from bottle import Bottle, abort, run, request
 
-keys = { 
+keys = [ 
         "64c4c469ab0743a368d00466e1eb8608",  
         "ca8601b9a687c34703e46328e3dc69eb" 
-        } 
+        ] 
 
 app = Bottle()
 service = PluginService("Test")
@@ -25,15 +25,14 @@ def is_authorized(req):
 
 @app.get("/info")
 def get_info():
-    if (not is_authorized(app.request)):
-        app.abort(401, "Unauthorized request.")
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
     return service.get_info()
 
-#@app.put("/session/create/<plugin_name>")
-@app.get("/session/create/<plugin_name>")
+@app.put("/session/create/<plugin_name>")
 def create_session(plugin_name):
-    if (not is_authorized(app.request)):
-        app.abort(401, "Unauthorized request.")
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
     try:
         return service.create_session(plugin_name);
     except PluginServiceError as e:
@@ -41,8 +40,8 @@ def create_session(plugin_name):
 
 @app.get("/sessions")
 def get_sessions():
-    if (not is_authorized(app.request)):
-        app.abort(401, "Unauthorized request.")
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
     try:
         return service.get_sessions()
     except PluginServiceError as e:
@@ -50,8 +49,8 @@ def get_sessions():
 
 @app.delete("/session/<session>")
 def terminate_session(session):
-    if (not is_authorized(app.request)):
-        app.abort(401, "Unauthorized request.")
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
     try:
         return service.terminate_session(session)
     except PluginServiceError as e:
@@ -59,8 +58,8 @@ def terminate_session(session):
 
 @app.get("/session/<session>/status")
 def get_session_status(session):
-    if (not is_authorized(app.request)):
-        app.abort(401, "Unauthorized request.")
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
     try:
         return service.get_session_status(session)
     except PluginServiceError as e:
@@ -68,8 +67,8 @@ def get_session_status(session):
 
 @app.get("/session/<session>/states")
 def get_session_states(session):
-    if (not is_authorized(app.request)):
-        app.abort(401, "Unauthorized request.")
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
     try:
         return service.get_session_state(session)
     except PluginServiceError as e:
@@ -77,8 +76,8 @@ def get_session_states(session):
 
 @app.post("/session/<session>/state/<state>")
 def set_session_states(session, state):
-    if (not is_authorized(app.request)):
-        app.abort(401, "Unauthorized request.")
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
     try:
         return service.set_session_state(session, state)
     except PluginServiceError as e:
