@@ -158,11 +158,23 @@ def set_plugin_service_session_config(service_name, session):
     except TaskEngineError as e:
         return { "success" : False, "message" : e}
 
-@app.put("/pluginservice/<service_name>/session/<session>/value/<key>/<value>")
-def set_plugin_service_session_value(service_name, session, key, value):
+@app.get("/pluginservice/<service_name>/session/<session>/config")
+def get_plugin_service_session_config(service_name, session):
     if (not is_authorized(request)):
         abort(401, "Unauthorized request.")
     try:
+        return task_engine.get_plugin_service_session_config(service_name, session)
+    except TaskEngineError as e:
+        return { "success" : False, "message" : e}
+
+@app.put("/pluginservice/<service_name>/session/<session>/value")
+def set_plugin_service_session_value(service_name, session):
+    print 'set_plugin_service_session_value(%s, %s)' % (service_name, session)
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
+    try:
+        key = request.query.key
+        value = request.query.value
         task_engine.set_plugin_service_session_value(service_name, session, key, value)
         return { "success" : True}
     except TaskEngineError as e:
@@ -176,6 +188,5 @@ def get_plugin_service_session_results(service_name, session):
         return task_engine.get_plugin_service_session_results(service_name, session)
     except TaskEngineError as e:
         return { "success" : False, "message" : e}
-
 
 run(app, host='localhost', port=8181)

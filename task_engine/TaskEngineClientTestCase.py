@@ -32,8 +32,8 @@ class TaskEngineTestCase(unittest.TestCase):
         result = te.get_plugin_template("TemplatePlugin", 1)
         print result
         
+        print "create_plugin_session"
         result = te.create_plugin_session("TemplatePlugin", 1)
-        print "create_plugin_session result:"
         print result
 
         session = result["session"]
@@ -41,11 +41,13 @@ class TaskEngineTestCase(unittest.TestCase):
         result = te.get_plugin_service_session_status(service_name, session)
         print result
 
-        result = te.set_plugin_service_session_value(service_name, session, "target", "localhost")
-        #te.set_plugin_service_session_value(service_name, session, "target", "http://localhost")
-        #te.set_plugin_service_session_config(service_name, session, {"target" : "http://localhost"})
-        #te.set_plugin_service_session_config(service_name, session, "XXX")
+        result = te.set_plugin_service_session_value(service_name, session, "target", "http://localhost:8080/")
         print result
+
+        print "get_plugin_service_session_config"
+        result = te.get_plugin_service_session_config(service_name, session)
+        print result
+
         result = te.set_plugin_service_session_state(service_name, session, "START")
         if ( result["status"] != "RUNNING"):
             self.fail("Unexpected result - should have worked %s" % result)
