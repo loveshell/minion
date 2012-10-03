@@ -41,7 +41,7 @@ class TaskEngineTestCase(unittest.TestCase):
         result = te.get_plugin_service_session_status(service_name, session)
         print result
 
-        result = te.set_plugin_service_session_value(service_name, session, "target",  "http://localhost:8080/")
+        result = te.set_plugin_service_session_value(service_name, session, "target", "http://localhost:8080/")
         print result
 
         print "get_plugin_service_session_config"
