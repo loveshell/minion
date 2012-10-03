@@ -1,5 +1,4 @@
 from copy import deepcopy
-import sys
 
 def hasKey(collection, key):
     path = key.strip().split('.')
@@ -33,8 +32,12 @@ def setKey(collection, key, value, force=False):
 class MinionPluginError(Exception):
     def __init__(self, value):
         self.value = value
+        print "MinionPluginError %s" %Exception
     def __str__(self):
         return repr(self.value)
+    def __repr__(self):
+        return repr(self.value)
+
 
 class MinionPlugin:
     PLUGIN_TYPE_ABSTRACT = "Abstract"   # Should just used by this class
@@ -85,7 +88,7 @@ class MinionPlugin:
 
     def getTemplateForKey(self, key):
         for tkey in self.template["template"]:
-            if tkey is key:
+            if tkey == key:
                 return self.template["template"][key]
         return None
 
@@ -143,8 +146,8 @@ class MinionPlugin:
             #XXX - Extension Point - do_status(), return create_status()
             result = self.do_status()
             return result
-        except:
-            return self.create_status(False, "Plugin was unable to report a status: %s" % sys.exc_info()[0], MinionPlugin.STATUS_FAILED)
+        except Exception as e:
+            return self.create_status(False, "Plugin was unable to report a status: %s" % e, MinionPlugin.STATUS_FAILED)
 
     def start(self):        
         try:        
@@ -156,8 +159,8 @@ class MinionPlugin:
                 return self.create_status(query["success"], "Plugin started: %s" % query["message"], query["status"])
             else:
                 return self.create_status(False, "Plugin could not be started: %s" % query["message"], query["status"])
-        except:
-            return self.create_status(False, "START failed: %s" % sys.exc_info()[0], MinionPlugin.STATUS_FAILED)
+        except Exception as e:
+            return self.create_status(False, "START failed: %s" % e, MinionPlugin.STATUS_FAILED)
 
 
     def suspend(self):
@@ -169,8 +172,8 @@ class MinionPlugin:
                 return self.create_status(query["success"], "Plugin suspended: %s" % query["message"], query["status"])
             else:
                 return self.create_status(False, "Plugin could not be suspended: %s" % query["message"], query["status"])
-        except:
-            return self.create_status(False, "SUSPEND failed: %s" % sys.exc_info()[0], MinionPlugin.STATUS_FAILED)
+        except Exception as e:
+            return self.create_status(False, "SUSPEND failed: %s" % e, MinionPlugin.STATUS_FAILED)
 
     def resume(self):
         try:            
@@ -181,8 +184,8 @@ class MinionPlugin:
                 return self.create_status(query["success"], "Plugin resumed: %s" % query["message"], query["status"])
             else:
                 return self.create_status(False, "Plugin could not be resumed: %s" % query["message"], query["status"])
-        except:
-            return self.create_status(False, "RESUME failed: %s" % sys.exc_info()[0], MinionPlugin.STATUS_FAILED)
+        except Exception as e:
+            return self.create_status(False, "RESUME failed: %s" % e, MinionPlugin.STATUS_FAILED)
 
     def terminate(self):
         try:            
@@ -193,8 +196,8 @@ class MinionPlugin:
                 return self.create_status(query["success"], "Plugin terminated: %s" % query["message"], query["status"])
             else:
                 return self.create_status(False, "Plugin could not be terminated: %s" % query["message"], query["status"])
-        except:
-            return self.create_status(False, "TERMINATE failed: %s" % sys.exc_info()[0], MinionPlugin.STATUS_FAILED)
+        except Exception as e:
+            return self.create_status(False, "TERMINATE failed: %s" % e, MinionPlugin.STATUS_FAILED)
 
     def canEnterState(self, state):
         try:
@@ -210,13 +213,13 @@ class MinionPlugin:
         return self.do_get_states()
     
     def changeState(self, state):
-        if (state is self.STATE_START):
+        if (state == self.STATE_START):
             return self.start()
-        elif (state is self.STATE_SUSPEND):
+        elif (state == self.STATE_SUSPEND):
             return self.suspend()
-        elif (state is self.STATE_RESUME):
+        elif (state == self.STATE_RESUME):
             return self.resume()
-        elif (state is self.STATE_TERMINATE):
+        elif (state == self.STATE_TERMINATE):
             return self.terminate()
         else:
             raise MinionPluginError("Invalid state %s" % state)

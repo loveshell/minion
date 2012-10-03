@@ -51,22 +51,23 @@ class TaskEngine(object):
         for ps in self.plugin_services:
             plugins = ps.get_plugins()
             for p in plugins["plugins"]:
-                if p["plugin"] is plugin and p["version"] is version:
+                if p["plugin"] == plugin and p["version"] == version:
                     ''' It shouldnt matter which one we choose, if they have the same name and version they should be identical '''
                     s.append(ps)
         return s
 
     def get_plugin_template(self, plugin, version):
-        s = self.get_services_with_plugin(plugin, version)
+        s = self.get_services_with_plugin(plugin, int(version))
         if len(s) is 0:
             raise TaskEngineError("Plugin not found %s" % plugin)
+        print "get_plugin_template got plugin %s" % s[0]
         return s[0].get_plugin_template(plugin)
 
     def get_plugin_service_info(self, service_name):
         return { 'plugin_services' : self.get_plugin_service(service_name).get_info() }
     
     def create_plugin_session(self, plugin, version):
-        s = self.get_services_with_plugin(plugin, version)
+        s = self.get_services_with_plugin(plugin, int(version))
         if len(s) is 0:
             raise TaskEngineError("Plugin not found %s" % plugin)
         ''' For now just select the first one;) '''
@@ -112,7 +113,19 @@ class TaskEngine(object):
 
     def set_plugin_service_session_config(self, service_name, session, config):
         ps = self.get_plugin_service(service_name)
-        ps.set_plugin_config(session, config)
+        try:
+            ps.set_plugin_config(session, config)
+        except Exception as e:
+            raise TaskEngineError(e)
+
+    def set_plugin_service_session_value(self, service_name, session, key, value):
+        ps = self.get_plugin_service(service_name)
+        try:
+            print ">>> TaskEngine pre call"
+            ps.set_plugin_value(session, key, value)
+        except Exception as e:
+            print "TaskEngine exception %s" % e
+            raise TaskEngineError(e)
 
     def get_plugin_service_session_results(self, service_name, session):
         ps = self.get_plugin_service(service_name)

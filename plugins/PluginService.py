@@ -16,7 +16,10 @@ VERSION = 1
 class PluginServiceError(Exception):
     def __init__(self, value):
         self.value = value
+        print "PluginServiceError %s" %Exception
     def __str__(self):
+        return repr(self.value)
+    def __repr__(self):
         return repr(self.value)
 
 class PluginService(object):
@@ -77,6 +80,18 @@ class PluginService(object):
             raise PluginServiceError("Unknown session %s" % session)
         sess = self.sessions[session]
         sess["plugin"].setConfig(config)
+
+    def get_plugin_value(self, session, key):
+        if (session not in self.sessions):
+            raise PluginServiceError("Unknown session %s" % session)
+        sess = self.sessions[session]
+        return sess["plugin"].getValue(key)
+
+    def set_plugin_value(self, session, key, value):
+        if (session not in self.sessions):
+            raise PluginServiceError("Unknown session %s" % session)
+        sess = self.sessions[session]
+        sess["plugin"].setValue(key, value)
 
     def get_info(self):
         return {"name" : self.name, "version" : VERSION}

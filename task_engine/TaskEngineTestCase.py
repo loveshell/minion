@@ -5,6 +5,7 @@ Created on 25 Sep 2012
 '''
 import unittest
 from TaskEngine import TaskEngine
+from TaskEngineClient import TaskEngineClient
 from PluginService import PluginService, PluginServiceError
 from MinionPlugin import MinionPlugin
 from TemplatePlugin import TemplatePlugin
@@ -21,6 +22,7 @@ class TaskEngineTestCase(unittest.TestCase):
 
     def testBasicApi(self):
         te = TaskEngine()
+        #te = TaskEngineClient("http://localhost:8181")
         
         result = te.get_all_plugins()
         if (len(result["plugins"]) is not 0):
@@ -41,6 +43,7 @@ class TaskEngineTestCase(unittest.TestCase):
         result = te.get_all_plugins()
         if (len(result["plugins"]) is not 1):
             self.fail("Unexpected number of plugin services returned %s" % result)
+        print result
         
         ''' Add another service, with 2 plugins, one of which is new '''
         ps = PluginService("TestService3")
