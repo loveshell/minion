@@ -6,11 +6,14 @@ from funfactory.log import log_cef
 from mobility.decorators import mobile_template
 from session_csrf import anonymous_csrf
 from django.core.context_processors import csrf
-import unittest
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
 from TaskEngineClient import TaskEngineClient
 
 log = commonware.log.getLogger('playdoh')
+
+te = TaskEngineClient("http://localhost:8181")
 
 @mobile_template('scanner/{mobile/}home.html')
 def home(request, template=None):
@@ -26,13 +29,21 @@ def newscan(request, template=None):
         data = {"url_entered":url_entered}
         
         #Task Engine work
-        te = TaskEngineClient("http://localhost:8181")
-        result = te.get_all_plugins()
         
+        result = te.get_all_plugins()
         data.update(result)
         
         result = te.get_plugin_template("TemplatePlugin", 1)
         data.update(result)
+        
+        result = te.create_plugin_session("TemplatePlugin", 1)
+        data.update(result)
+        
+        session = result["session"]
+        service_name = result["plugin_service"]["name"]
+        result = te.set_plugin_service_session_value(service_name, session, "target", "localhost")
+        
+        
         
         log.debug("data " + str(data))
         log.debug("RESULT " + str(result))
@@ -42,6 +53,18 @@ def newscan(request, template=None):
     else:
         data = {}  # You'd add data here that you're sending to the template.
         return render(request, template, data)
+
+def xhr_scan_status(request):
+    if request.is_ajax():
+        message = "x"
+        if request.method == 'POST':
+            #log.debug("\n\nAJAX_POST_RECEIVED " + str(request.POST))
+            service_name = request.POST["service_name"]
+            session = request.POST["session"]
+            message = te.get_plugin_service_session_status(service_name, session)
+    else:
+        message = ""
+    return HttpResponse(str(message))
 
 @anonymous_csrf
 def bleach_test(request):
