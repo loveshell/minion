@@ -56,13 +56,6 @@ class PluginService(object):
         ''' TODO: this the right way to do it?? '''
         return plugin().getTemplate()
 
-    def get_plugin_config(self, plugin_name):
-        if (plugin_name not in self.plugins):
-            raise PluginServiceError("Unknown plugin %s" % plugin_name)
-        plugin = self.plugins[plugin_name]
-        ''' TODO: this the right way to do it?? '''
-        return plugin().getConfig()
-
     def create_session(self, plugin_name):
         if (plugin_name not in self.plugins):
             raise PluginServiceError("Unknown plugin %s" % plugin_name)
@@ -75,6 +68,13 @@ class PluginService(object):
                 "session" : session, 
                 "message" : "Created new session for plugin '%s'" % plugin_name }
     
+    def get_plugin_config(self, session):
+        print 'PluginService.get_plugin_config(%s, %s)' % (self, session)
+        if (session not in self.sessions):
+            raise PluginServiceError("Unknown session %s" % session)
+        sess = self.sessions[session]
+        return sess["plugin"].getConfig()
+
     def set_plugin_config(self, session, config):
         if (session not in self.sessions):
             raise PluginServiceError("Unknown session %s" % session)

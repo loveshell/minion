@@ -8,6 +8,7 @@ Simple wrapper around the TaskEngine providing, yes, a REST API
 '''
 import json
 import requests
+import urllib
 
 key = "64c4c469ab0743a368d00466e1eb8608"
 
@@ -100,8 +101,15 @@ class TaskEngineClient(object):
             print r.json
         return r.json
     
+    def get_plugin_service_session_config(self, service_name, session):
+        r = requests.get("%s/pluginservice/%s/session/%s/config"%(self.url, service_name, session), data={}, headers=self.headers)
+        if (self.printResults):
+            print r.json
+        return r.json
+    
     def set_plugin_service_session_value(self, service_name, session, key, value):
-        r = requests.put("%s/pluginservice/%s/session/%s/value/%s/%s"%(self.url, service_name, session, key, value), data={}, headers=self.headers)
+        #r = requests.put("%s/pluginservice/%s/session/%s/value/%s/%s"%(self.url, service_name, session, key, urllib.quote(value, '')), data={}, headers=self.headers)
+        r = requests.put("%s/pluginservice/%s/session/%s/value?key=%s&value=%s"%(self.url, service_name, session, key, urllib.quote(value, '')), data={}, headers=self.headers)
         if (self.printResults):
             print r.json
         return r.json

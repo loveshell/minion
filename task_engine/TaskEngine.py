@@ -7,7 +7,10 @@ Created on 26 Sep 2012
 class TaskEngineError(Exception):
     def __init__(self, value):
         self.value = value
+        print "TaskEngineError %s" %Exception
     def __str__(self):
+        return repr(self.value)
+    def __repr__(self):
         return repr(self.value)
 
 class TaskEngine(object):
@@ -116,12 +119,22 @@ class TaskEngine(object):
         try:
             ps.set_plugin_config(session, config)
         except Exception as e:
+            print "TaskEngine exception %s" % e
+            raise TaskEngineError(e)
+
+    def get_plugin_service_session_config(self, service_name, session):
+        ps = self.get_plugin_service(service_name)
+        try:
+            result = {"plugin_service" : ps.get_info()}
+            result.update(ps.get_plugin_config(session))
+            return result
+        except Exception as e:
+            print "TaskEngine exception %s" % e
             raise TaskEngineError(e)
 
     def set_plugin_service_session_value(self, service_name, session, key, value):
         ps = self.get_plugin_service(service_name)
         try:
-            print ">>> TaskEngine pre call"
             ps.set_plugin_value(session, key, value)
         except Exception as e:
             print "TaskEngine exception %s" % e
