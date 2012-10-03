@@ -22,7 +22,7 @@ class TaskEngineTestCase(unittest.TestCase):
         '''
         te = TaskEngineClient("http://localhost:8181")
         
-        ''' Should now be one plugion '''
+        ''' Should now be one plugin '''
         result = te.get_all_plugins()
         if (len(result["plugins"]) is not 1):
             self.fail("Unexpected number of plugin services returned %s" % result)
@@ -30,21 +30,24 @@ class TaskEngineTestCase(unittest.TestCase):
         # TODO: Check the results - just doing manually nowe ;)            
         ''' Get the interface for a plugin '''
         result = te.get_plugin_template("TemplatePlugin", 1)
+        print "\n\nResult after get_plugin_template: "
         print result
         
         result = te.create_plugin_session("TemplatePlugin", 1)
-        print "create_plugin_session result:"
+        print "\n\ncreate_plugin_session result:"
         print result
 
         session = result["session"]
         service_name = result["plugin_service"]["name"]
         result = te.get_plugin_service_session_status(service_name, session)
+        print "\n\nget_plugin_service_session_status result:"
         print result
 
         result = te.set_plugin_service_session_value(service_name, session, "target", "localhost")
         #te.set_plugin_service_session_value(service_name, session, "target", "http://localhost")
         #te.set_plugin_service_session_config(service_name, session, {"target" : "http://localhost"})
         #te.set_plugin_service_session_config(service_name, session, "XXX")
+        print "\n\nset_plugin_service_session_value:"
         print result
         result = te.set_plugin_service_session_state(service_name, session, "START")
         if ( result["status"] != "RUNNING"):

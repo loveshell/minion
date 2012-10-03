@@ -2,6 +2,9 @@
 # repo. If you need to override a setting locally, use settings_local.py
 
 from funfactory.settings_base import *
+import sys
+sys.path.append("/home/minion/minion/plugins/")
+sys.path.append("/home/minion/minion/task_engine/")
 
 # Name of the top-level module where you put all your apps.
 # If you did not install Playdoh with the funfactory installer script
@@ -17,6 +20,8 @@ INSTALLED_APPS = list(INSTALLED_APPS) + [
     '%s.base' % PROJECT_MODULE,
     # Main scanner application
     '%s.scanner' % PROJECT_MODULE,
+    #Session Management
+    'django.contrib.sessions'
 ]
 
 LOCALE_PATHS = (
