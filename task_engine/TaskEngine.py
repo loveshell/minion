@@ -3,11 +3,12 @@ Created on 26 Sep 2012
 
 @author: psiinon
 '''
+import logging
 
 class TaskEngineError(Exception):
     def __init__(self, value):
         self.value = value
-        print "TaskEngineError %s" %Exception
+        logging.error("TaskEngineError %s" % Exception)
     def __str__(self):
         return repr(self.value)
     def __repr__(self):
@@ -18,22 +19,27 @@ class TaskEngine(object):
     def __init__(self):
         ''' A list of PluginService (local) or PluginServiceClient (remote) - they have the same interface '''
         self.plugin_services = []
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
         pass
     
-    def get_plugin_service(self, service_name):
+    def __get_plugin_service__(self, service_name):
         for ps in self.plugin_services:
             if (ps.get_info()["name"] == service_name):
                 return ps
         raise TaskEngineError("Unknown plugin service %s" % service_name)
     
     def get_plugin_services(self):
+        logging.debug("get_plugin_services()")
         s = []
         for ps in self.plugin_services:
             s.append(ps.get_info())
-        return { 'plugin_services' : s }
+        r = { 'plugin_services' : s }
+        logging.debug("get_plugin_services() %s" % r)
+        return r
     
     def get_all_plugins(self):
         ''' Returns a list of all of the plugins available '''
+        logging.debug("get_all_plugins()")
         plist = []
         for ps in self.plugin_services:
             plugins = ps.get_plugins()
@@ -63,11 +69,10 @@ class TaskEngine(object):
         s = self.get_services_with_plugin(plugin, int(version))
         if len(s) is 0:
             raise TaskEngineError("Plugin not found %s" % plugin)
-        print "get_plugin_template got plugin %s" % s[0]
         return s[0].get_plugin_template(plugin)
 
     def get_plugin_service_info(self, service_name):
-        return { 'plugin_services' : self.get_plugin_service(service_name).get_info() }
+        return { 'plugin_services' : self.__get_plugin_service__(service_name).get_info() }
     
     def create_plugin_session(self, plugin, version):
         s = self.get_services_with_plugin(plugin, int(version))
@@ -79,43 +84,43 @@ class TaskEngine(object):
         return result
 
     def create_plugin_service_session(self, service_name, plugin_name):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         result = {"plugin_service" : ps.get_info()}
         result.update(ps.create_session(plugin_name))
         return result
 
     def get_plugin_service_sessions(self, service_name):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         result = {"plugin_service" : ps.get_info()}
         result.update(ps.get_sessions())
         return result
 
     def terminate_plugin_service_session(self, service_name, session):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         result = {"plugin_service" : ps.get_info()}
         result.update(ps.get_session(session))
         return result
 
     def get_plugin_service_session_status(self, service_name, session):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         result = {"plugin_service" : ps.get_info()}
         result.update(ps.get_session_status(session))
         return result
 
     def get_plugin_service_session_states(self, service_name, session):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         result = {"plugin_service" : ps.get_info()}
         result.update(ps.get_session_states(session))
         return result
 
     def set_plugin_service_session_state(self, service_name, session, state):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         result = {"plugin_service" : ps.get_info()}
         result.update(ps.set_session_state(session, state))
         return result
 
     def set_plugin_service_session_config(self, service_name, session, config):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         try:
             ps.set_plugin_config(session, config)
         except Exception as e:
@@ -123,7 +128,7 @@ class TaskEngine(object):
             raise TaskEngineError(e)
 
     def get_plugin_service_session_config(self, service_name, session):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         try:
             result = {"plugin_service" : ps.get_info()}
             result.update(ps.get_plugin_config(session))
@@ -133,7 +138,7 @@ class TaskEngine(object):
             raise TaskEngineError(e)
 
     def set_plugin_service_session_value(self, service_name, session, key, value):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         try:
             ps.set_plugin_value(session, key, value)
         except Exception as e:
@@ -141,7 +146,7 @@ class TaskEngine(object):
             raise TaskEngineError(e)
 
     def get_plugin_service_session_results(self, service_name, session):
-        ps = self.get_plugin_service(service_name)
+        ps = self.__get_plugin_service__(service_name)
         result = {"plugin_service" : ps.get_info()}
         result.update(ps.get_session_results(session))
         return result

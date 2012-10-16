@@ -1,4 +1,5 @@
 from copy import deepcopy
+import logging
 
 def hasKey(collection, key):
     path = key.strip().split('.')
@@ -31,8 +32,8 @@ def setKey(collection, key, value, force=False):
 
 class MinionPluginError(Exception):
     def __init__(self, value):
+        logging.debug("init(%s)" % value);
         self.value = value
-        print "MinionPluginError %s" %Exception
     def __str__(self):
         return repr(self.value)
     def __repr__(self):
@@ -74,28 +75,35 @@ class MinionPlugin:
 
     default = { }
     def __init__(self, default):
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.debug("init()");
         self.template = deepcopy(self.__class__.default)
         #self.configuration = deepcopy(self.__class__.default)
         self.configuration = {}
 
 
     def resetConfig(self):
+        logging.debug("resetConfig()");
         #self.configuration = deepcopy(self.__class__.default)    
         self.configuration = {}    
 
     def getTemplate(self):
+        logging.debug("getTemplate()");
         return self.template
 
     def getTemplateForKey(self, key):
+        logging.debug("getTemplateForKey(%s)" % key);
         for tkey in self.template["template"]:
             if tkey == key:
                 return self.template["template"][key]
         return None
 
     def getConfig(self):
+        logging.debug("getConfig()");
         return self.configuration
 
     def setConfig(self, config):
+        logging.debug("setConfig(%s)" % config);
         if (self.status()["status"] != MinionPlugin.STATUS_PENDING):
             raise MinionPluginError("Cannot configure a plugin once execution has started.")
         #XXX - Extension Point - do_validate(config), return True|False
@@ -105,6 +113,7 @@ class MinionPlugin:
             raise MinionPluginError("Invalid configuration exception.")
 
     def validateConfig(self, config):
+        logging.debug("validateConfig(TBA)");
         ''' first check each value is in the template '''
         for ckey in config:
             self.validateKey(ckey, config[ckey])
@@ -116,12 +125,14 @@ class MinionPlugin:
         return self.do_validate_config(config)
         
     def do_validate_config(self, config):
+        logging.debug("do_validate_config(TBA)");
         ''' first check each value is in the template '''
         for ckey in config:
             self.validateKey(ckey, config[ckey])
         return True
 
     def validateKey(self, key, value):
+        logging.debug("validateKey(%s, %s)" % (key, value));
         ''' first check each value is in the template '''
         tmp = self.getTemplateForKey(key)
         if tmp is None:
@@ -129,12 +140,14 @@ class MinionPlugin:
         return self.do_validate_key(key, value)
 
     def getValue(self, key):
+        logging.debug("getValue(%s)" % (key));
         try:
             return hasKey(self.configuration, key)
         except:
             return None
 
     def setValue(self, key, value):
+        logging.debug("setValue(%s, %s)" % (key, value));
         if (self.status()["status"] != MinionPlugin.STATUS_PENDING):
             raise MinionPluginError("Cannot configure a plugin once execution has started.")
         if (self.validateKey(key, value)):
@@ -147,9 +160,11 @@ class MinionPlugin:
             result = self.do_status()
             return result
         except Exception as e:
+            logging.error("status() " + e);
             return self.create_status(False, "Plugin was unable to report a status: %s" % e, MinionPlugin.STATUS_FAILED)
 
     def start(self):        
+        logging.debug("start()");
         try:        
             if (self.canEnterState(self.STATE_START)):
                 self.validateConfig(self.getConfig())
@@ -200,6 +215,7 @@ class MinionPlugin:
             return self.create_status(False, "TERMINATE failed: %s" % e, MinionPlugin.STATUS_FAILED)
 
     def canEnterState(self, state):
+        logging.debug("canEnterState(%s)" % (state));
         try:
             if not state in self.STATES:
                 raise MinionPluginError("Invalid state %s" % state)
@@ -213,6 +229,7 @@ class MinionPlugin:
         return self.do_get_states()
     
     def changeState(self, state):
+        logging.debug("changeState(%s)" % (state));
         if (state == self.STATE_START):
             return self.start()
         elif (state == self.STATE_SUSPEND):
@@ -225,5 +242,6 @@ class MinionPlugin:
             raise MinionPluginError("Invalid state %s" % state)
         
     def getResults(self):
+        logging.debug("getResults");
         return self.do_get_results()
         
