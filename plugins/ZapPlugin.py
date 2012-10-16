@@ -3,6 +3,7 @@
 from MinionPlugin import MinionPlugin
 import threading
 import time
+import logging
 from zap import ZAP
 
 # TODO: This is work in progress!
@@ -14,38 +15,57 @@ class ZapScanThread(threading.Thread):
 		
 	def setZap(self, zap):
 		self.zap = zap
+		self.status = MinionPlugin.STATUS_PENDING
 
 	def setTarget(self, target):
 		self.target = target
 				
 	def run(self):
-		self.zap.urlopen(self.target)
-		
-		# Give the sites tree a chance to get updated
-		time.sleep(2)
-		
-		print 'Spidering target %s' % self.target
-		self.zap.start_spider(self.target)
-		# Give the Spider a chance to start
-		time.sleep(2)
-		while (int(self.zap.spider_status[0]) < 100):
-			print 'Spider progress %: ' + self.zap.spider_status[0]
+		logging.debug("run()")
+		self.status = MinionPlugin.STATUS_RUNNING
+		try:
+			self.zap.urlopen(self.target)
+			
+			# Give the sites tree a chance to get updated
+			time.sleep(2)
+			
+			logging.debug('Spidering target %s' % self.target)
+			self.zap.start_spider(self.target)
+			# Give the Spider a chance to start
+			time.sleep(2)
+			while (int(self.zap.spider_status[0]) < 100):
+				logging.debug('Spider progress %s' % self.zap.spider_status[0])
+				time.sleep(5)
+			
+			logging.debug('Spider completed')
+			# Give the passive scanner a chance to finish
 			time.sleep(5)
-		
-		print 'Spider completed'
-		# Give the passive scanner a chance to finish
-		time.sleep(5)
-		
-		print 'Scanning target %s' % self.target
-		self.zap.start_scan(self.target)
-		''' Nasty HACK '''
-		#self.zap.start_scan("http://localhost:8080/")	
-		time.sleep(5)
-		while (int(self.zap.scan_status[0]) < 100):
-			print 'Scan progress %: ' + self.zap.scan_status[0]
+			
+			logging.debug('Scanning target %s' % self.target)
+			self.zap.start_scan(self.target)
 			time.sleep(5)
-
-		print 'Scan completed? %s' % self.zap.scan_status[0]
+			while (int(self.zap.scan_status[0]) < 100):
+				logging.debug('Scan progress %: ' % self.zap.scan_status[0])
+				time.sleep(5)
+	
+			logging.debug('Scan completed? %s' % self.zap.scan_status[0])
+			self.status = MinionPlugin.STATUS_COMPLETE
+			logging.debug('Scan completed? zap status %s' % self.status)
+		except Exception as e:
+			logging.error("run() " + e)
+			self.status = MinionPlugin.STATUS_FAILED
+		
+	def getProgress(self):
+		logging.debug("getProgress()")
+		progress = int(self.zap.spider_status[0]) / 2
+		if progress == 50:
+			progress += (int(self.zap.scan_status[0]) / 2)
+		logging.debug("getProgress() returning %i" %progress)
+		return progress 
+	
+	def getState(self):
+		logging.debug("getState() " + self.status)
+		return self.status
 
 class ZapPlugin(MinionPlugin):
 
@@ -59,6 +79,7 @@ class ZapPlugin(MinionPlugin):
 	}
 
 	def __init__(self):
+		logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 		MinionPlugin.__init__(self, ZapPlugin.default)
 
 		self.state = MinionPlugin.STATUS_PENDING
@@ -88,22 +109,28 @@ class ZapPlugin(MinionPlugin):
 		return True
 
 	def do_status(self):
-		return self.create_status(True, self.messages[self.state], self.state)
+		logging.debug("ZapPlugin.do_status " + self.state)
+		if not hasattr(self, 'zct'):
+			return self.create_status(True, self.messages[self.state], self.state)
+		progress = self.zct.getProgress()
+		state = self.zct.getState()
+		if progress == 100:
+			logging.debug('ZCT state is %s' % state)
+			#self.state = MinionPlugin.STATUS_COMPLETE
+			
+		return self.create_status(True, self.messages[state] + " " + str(progress), state)
 
 	def do_start(self):
-		target = "http://localhost:8080/bodgeit/"
-		print "ZapPlugin pre start"
+		logging.debug("do_start()")
 		try:
-			zct = ZapScanThread()
-			zct.setZap(self.zap)
-			zct.setTarget(target)
-			zct.start()
-			
+			self.zct = ZapScanThread()
+			self.zct.setZap(self.zap)
+			self.zct.setTarget(self.getValue("target"))
+			self.zct.start()
+			self.state = MinionPlugin.STATUS_RUNNING
 		except Exception as e:
-			print "ZapPlugin failed %s" % e
-		print "ZapPlugin post start"
+			logging.error("do_start() " + e)
 		
-		self.state = MinionPlugin.STATUS_RUNNING
 		#return self.create_status(True, self.messages[self.state], self.state)
 		return self.create_std_status(True, self.state)
 
@@ -122,4 +149,34 @@ class ZapPlugin(MinionPlugin):
 	def do_get_states(self):
 		return self.allow_states[self.state]
 
+	def do_get_results(self):
+		logging.debug("do_get_results()")
+		issues = [] 
+		if not hasattr(self, 'zct'):
+			return issues
+		# TODO implement properly
+		'''
+			Not currently using: reference, param, attack
+			And should combine alerts listing all of the related urls instead of including them individually 
+		'''
+		for alert in self.zap.alerts:
+			issues.append({
+				"Summary" : alert.get('alert'), 
+				"Description" : alert.get('description'), 
+				"Further-Info" : alert.get('other'), 
+				"Severity" : alert.get('risk'), 
+				"Confidence" : alert.get('reliability'), 
+				"Solution" : alert.get('solution'), 
+				"URLs" : alert.get('url')});
+		return {"issues" : issues};
 
+	# TODO hacking
+	def create_issue(self, summary, description, moreinfo, severity, confidence, urlList):
+		return {
+			"Summary" : summary, 
+			"Description" : description, 
+			"Further-Info" : moreinfo, 
+			"Severity" : severity, 
+			"Confidence" : confidence, 
+			"URLs" : urlList}
+		
