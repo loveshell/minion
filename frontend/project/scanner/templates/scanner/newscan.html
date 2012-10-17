@@ -1,0 +1,66 @@
+{% extends "scanner_base.html" %}
+
+{% block content %}
+    <h1>New Scan</h1>
+    {% if url_entered %}
+        <h2>Details</h2>
+        <p>Now scanning: {{url_entered}}...</p>
+        
+        <p>Response: {{plugins}}</p>
+        
+        <p>Safechecks: {{safechecks}}</p>
+        <p>Template: {{template}}</p>
+        
+        <p>Session: {{session}}</p>
+        <p>Service Name: {{plugin_service["name"]}}</p>
+        
+        
+        <h2>Live Results</h2>
+        <textarea id="updating_results">
+            
+        </textarea>
+        
+        <script type="text/javascript">
+            setInterval(function() {
+                $.post("/en-US/xhr_scan_status/", {
+                    service_name: "{{plugin_service['name']}}",
+                    session: "{{session}}",
+                    csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+                function(data) {
+                    $("#updating_results").val($("#updating_results").val() + "\n" + data);
+                });
+            }, 5000);
+        </script>
+        
+    {% else %}
+        <form method="POST" action="">
+            <div id="new_scan_enter_url">
+                <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/><br/>
+                <input type="submit" value="Start Scan" />
+            </div>
+            <div id="new_scan_advanced_options">
+                <div id="new_scan_advanced_options_expander">
+                    Additional Options (coming soon!)
+                </div>
+            </div>
+            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+        </form>
+    {% endif %}
+
+{% endblock %}
+
+{% block footer %}
+    
+{% endblock %}
+
+{% block site_js %}
+    {% compress js %}
+    <script src="{{ static('scanner/js/libs/jquery-1.8.2.min.js') }}"></script>
+    <script src="{{ static('scanner/js/libs/jquery.cookie.js') }}"></script>
+    <script src="{{ static('scanner/js/init.js') }}"></script>
+    {% endcompress %}
+    {% if not request.user.is_active %}
+        {{ browserid_form.media }}
+    {% endif %}
+{% endblock %}
