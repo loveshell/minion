@@ -1,4 +1,0 @@
-#, python-format
-msgid "Broken %(string)s"
-msgstr "Broken %(fuuu)s"
-
