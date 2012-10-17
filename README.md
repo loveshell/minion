@@ -37,6 +37,8 @@ If you have MySQL running on localhost, you can add a new database and user for 
     mysql>GRANT ALL PRIVILEGES on minion.* to minion@localhost ;
     mysql>exit;
 
+*DO NOT USE THESE SETTINGS FOR PRODUCTION - WE ENCOURAGE YOU TO HARDEN YOUR MYSQL SETUP AND USE A DIFFICULT TO GUESS USERNAME AND PASSWORD*
+
 Minion uses BrowserID, which means you need to configure the IP address or hostname on which you run Minion. This is done with the SITE_URL option in projects/settings/local.py. If you forget to set this, you will not be able to login.
 
 Running Minion in Development Mode
