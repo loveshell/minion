@@ -29,6 +29,14 @@ Create a virtualenv and configure the three modules of minion:
 
 Minion requires a MySQL database. By default it uses minion as the database, username and password and expects the database to be running on localhost. You can change these settings in projects/settings/local.py.
 
+If you have MySQL running on localhost, you can add a new database and user for Minion as follows:
+
+    mysql -u root
+    mysql>CREATE DATABASE minion;
+    mysql>CREATE USER 'minion'@'localhost' IDENTIFIED BY 'minion';
+    mysql>GRANT ALL PRIVILEGES on minion.* to minion@localhost ;
+    mysql>exit;
+
 Minion uses BrowserID, which means you need to configure the IP address or hostname on which you run Minion. This is done with the SITE_URL option in projects/settings/local.py. If you forget to set this, you will not be able to login.
 
 Running Minion in Development Mode
