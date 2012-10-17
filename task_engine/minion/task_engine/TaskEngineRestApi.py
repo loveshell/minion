@@ -7,7 +7,7 @@ Simple wrapper around the TaskEngine providing, yes, a REST API
 
 '''
 from TaskEngine import TaskEngine, TaskEngineError
-from PluginService import PluginService
+from minion.plugin_service.PluginService import PluginService
 #from bottle import abort, get, put, post, delete, request, run
 from bottle import Bottle, abort, run, request
 
