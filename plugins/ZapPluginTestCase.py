@@ -14,18 +14,6 @@ class ZapPluginTestCase(unittest.TestCase):
         if (result.get("status") != expected):
             self.fail("Expected " + expected + " got " + result.get("status") )
 
-    def XXtestStandardRunName(self):
-        plugin = ZapPlugin()
-        self.check_result(plugin.status(), MinionPlugin.STATUS_PENDING);
-        plugin.start()
-        self.check_result(plugin.status(), MinionPlugin.STATUS_RUNNING);
-        plugin.suspend()
-        self.check_result(plugin.status(), MinionPlugin.STATUS_WAITING);
-        plugin.resume()
-        self.check_result(plugin.status(), MinionPlugin.STATUS_RUNNING);
-        plugin.terminate()
-        self.check_result(plugin.status(), MinionPlugin.STATUS_CANCELLED);
-
     def testBodgeitRunName(self):
         plugin = ZapPlugin()
         self.check_result(plugin.status(), MinionPlugin.STATUS_PENDING);
@@ -37,9 +25,12 @@ class ZapPluginTestCase(unittest.TestCase):
             #print ("TEST Status: %s Message: %s", (plugin.status().get("status"), plugin.status().get("message") ))
             sleep(5)
             
-        print plugin.getResults()
+        for issue in plugin.getResults()['issues']:
+            print issue
+        
             
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
+    

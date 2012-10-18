@@ -160,7 +160,7 @@ class MinionPlugin:
             result = self.do_status()
             return result
         except Exception as e:
-            logging.error("status() " + e);
+            logging.error("status() " + str(e));
             return self.create_status(False, "Plugin was unable to report a status: %s" % e, MinionPlugin.STATUS_FAILED)
 
     def start(self):        
