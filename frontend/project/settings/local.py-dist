@@ -9,8 +9,8 @@ from . import base
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'playdoh_app',
-        'USER': 'root',
+        'NAME': 'minion',
+        'USER': 'minion',
         'PASSWORD': 'minion',
         'HOST': '',
         'PORT': '',
@@ -89,3 +89,8 @@ ACCEPTED_USER_DOMAINS = [
     'mozilla.com',
     'mozilla.org',
 ]
+
+s setting to the public IP of your server. This needs to match
+#otherwise BrowserID will fail.
+SITE_URL = "http://127.0.0.1:8000"
+
