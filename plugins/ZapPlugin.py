@@ -1,4 +1,10 @@
-# A simple Template plugin
+'''
+This is a basic Minion Plugin for the OWASP Zed Attack Proxy (ZAP)
+
+It all works, but you will have to have ZAP installed.
+And the script will need tweaking on Linux, as theres no default directory -
+right now you'll need to hard code that - plan to add config file support soon.
+'''
 
 from MinionPlugin import MinionPlugin
 import threading
@@ -212,15 +218,27 @@ class ZapPlugin(MinionPlugin):
 		else:
 			alerts = self.zap.alerts
 	
+	
 		for alert in alerts:
-			issues.append({
-				"Summary" : alert.get('alert'), 
-				"Description" : alert.get('description'), 
-				"Further-Info" : alert.get('other'), 
-				"Severity" : alert.get('risk'), 
-				"Confidence" : alert.get('reliability'), 
-				"Solution" : alert.get('solution'), 
-				"URLs" : alert.get('url')});
+			found = False
+			for issue in issues:
+				# TODO should test other values here as well
+				if alert.get('alert') == issue['Summary']:
+					issue['URLs'].append(alert.get('url'))
+					found = True
+					break
+				if found:
+					break
+			if not found:
+				issues.append({
+					"Summary" : alert.get('alert'), 
+					"Description" : alert.get('description'), 
+					"Further-Info" : alert.get('other'), 
+					"Severity" : alert.get('risk'), 
+					"Confidence" : alert.get('reliability'), 
+					"Solution" : alert.get('solution'), 
+					"URLs" : [alert.get('url')]});
+
 		return {"issues" : issues};
 
 	# TODO hacking
