@@ -4,17 +4,18 @@ from MinionPlugin import MinionPlugin
 import threading
 import time
 import logging
+import os
+import platform
+#import subprocess
 from zap import ZAP
-
-# TODO: This is work in progress!
 
 class ZapScanThread(threading.Thread):
 	
 	zap = None
 	target = None
 		
-	def setZap(self, zap):
-		self.zap = zap
+	def setZapPlugin(self, zapPlugin):
+		self.zapPlugin = zapPlugin
 		self.status = MinionPlugin.STATUS_PENDING
 
 	def setTarget(self, target):
@@ -24,17 +25,17 @@ class ZapScanThread(threading.Thread):
 		logging.debug("run()")
 		self.status = MinionPlugin.STATUS_RUNNING
 		try:
-			self.zap.urlopen(self.target)
+			self.zapPlugin.zap.urlopen(self.target)
 			
 			# Give the sites tree a chance to get updated
 			time.sleep(2)
 			
 			logging.debug('Spidering target %s' % self.target)
-			self.zap.start_spider(self.target)
+			self.zapPlugin.zap.start_spider(self.target)
 			# Give the Spider a chance to start
 			time.sleep(2)
-			while (int(self.zap.spider_status[0]) < 100):
-				logging.debug('Spider progress %s' % self.zap.spider_status[0])
+			while (int(self.zapPlugin.zap.spider_status[0]) < 100):
+				logging.debug('Spider progress %s' % self.zapPlugin.zap.spider_status[0])
 				time.sleep(5)
 			
 			logging.debug('Spider completed')
@@ -42,24 +43,30 @@ class ZapScanThread(threading.Thread):
 			time.sleep(5)
 			
 			logging.debug('Scanning target %s' % self.target)
-			self.zap.start_scan(self.target)
+			self.zapPlugin.zap.start_scan(self.target)
 			time.sleep(5)
-			while (int(self.zap.scan_status[0]) < 100):
-				logging.debug('Scan progress %: ' % self.zap.scan_status[0])
+			while (int(self.zapPlugin.zap.scan_status[0]) < 100):
+				logging.debug('Scan progress %: ' % self.zapPlugin.zap.scan_status[0])
 				time.sleep(5)
 	
-			logging.debug('Scan completed? %s' % self.zap.scan_status[0])
+			logging.debug('Scan completed? %s' % self.zapPlugin.zap.scan_status[0])
 			self.status = MinionPlugin.STATUS_COMPLETE
-			logging.debug('Scan completed? zap status %s' % self.status)
+			
+			# Save the results so the plugin can get them after ZAP is stopped
+			self.zapPlugin.results = self.zapPlugin.zap.alerts
+			
+			logging.debug('Scan completed, shutting down')
+			self.zapPlugin.zap.shutdown()
+			
 		except Exception as e:
 			logging.error("run() " + e)
 			self.status = MinionPlugin.STATUS_FAILED
 		
 	def getProgress(self):
 		logging.debug("getProgress()")
-		progress = int(self.zap.spider_status[0]) / 2
+		progress = int(self.zapPlugin.zap.spider_status[0]) / 2
 		if progress == 50:
-			progress += (int(self.zap.scan_status[0]) / 2)
+			progress += (int(self.zapPlugin.zap.scan_status[0]) / 2)
 		logging.debug("getProgress() returning %i" %progress)
 		return progress 
 	
@@ -68,8 +75,6 @@ class ZapScanThread(threading.Thread):
 		return self.status
 
 class ZapPlugin(MinionPlugin):
-
-	zap = ZAP(proxies={'http': 'http://127.0.0.1:8090', 'https': 'http://127.0.0.1:8090'})
 
 	default = {
 		"template" : {
@@ -82,6 +87,7 @@ class ZapPlugin(MinionPlugin):
 		logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 		MinionPlugin.__init__(self, ZapPlugin.default)
 
+		self.zap = ZAP(proxies={'http': 'http://127.0.0.1:8090', 'https': 'http://127.0.0.1:8090'})
 		self.state = MinionPlugin.STATUS_PENDING
 
 		self.messages = {
@@ -101,7 +107,41 @@ class ZapPlugin(MinionPlugin):
         	MinionPlugin.STATUS_FAILED : []
         }
 
+	def start_zap(self):
+		# TODO: Include in the ZAP python API in the future
+		# TODO: check if ZAP already running?
+		# TODO: loads of override options in the configs ;)
+		if platform.system() == 'Windows':
+			#zap_script = ['start /b zap.bat']
+			zap_script = 'start /b zap.bat'
+			zap_path = 'C:\Program Files (x86)\OWASP\Zed Attack Proxy'
+			if not os.path.exists(zap_path):
+				# Win XP default path
+				zap_path = "C:\Program Files\OWASP\Zed Attack Proxy"
+		elif platform.system() == 'Darwin':
+			#zap_script = ['java', '-jar', 'zap.jar']
+			zap_script = 'java -jar zap.jar'
+			zap_path = '/Applications/OWASP ZAP.app/Contents/Resources/Java'
+		else:
+			zap_script = './zap.sh'
+			# TODO: no std path on Linux - need option to specify one
+			
+		# This should be conditional on options
+		#zap_script.append(' -daemon')
+		zap_script += ' -daemon'
 
+		# Start ZAP
+		logging.debug("Starting ZAP in %s using %s" % (zap_path, zap_script))
+		os.chdir(zap_path)
+		os.system(zap_script)
+		'''
+		subprocess may be better, but I had problems getting it to work on Windows
+		subprocess.Popen(zap_script, cwd=zap_path, stdout=subprocess.PIPE)
+		'''
+
+	def stop_zap(self):
+		self.zap.shutdown()
+		
 	def do_validate(self, config):
 		return True
 
@@ -113,18 +153,26 @@ class ZapPlugin(MinionPlugin):
 		if not hasattr(self, 'zct'):
 			return self.create_status(True, self.messages[self.state], self.state)
 		progress = self.zct.getProgress()
-		state = self.zct.getState()
+		
+		#if self.state == MinionPlugin.STATUS_COMPLETE and self.zct.getState() == MinionPlugin.STATUS_RUNNING:
+		#	self.stop_zap()  
+		
+		self.state = self.zct.getState()
+		
 		if progress == 100:
-			logging.debug('ZCT state is %s' % state)
+			logging.debug('ZCT state is %s' % self.state)
 			#self.state = MinionPlugin.STATUS_COMPLETE
 			
-		return self.create_status(True, self.messages[state] + " " + str(progress), state)
+		return self.create_status(True, self.messages[self.state] + " " + str(progress), self.state)
 
 	def do_start(self):
 		logging.debug("do_start()")
 		try:
+			self.start_zap()
+			time.sleep(30)
+			
 			self.zct = ZapScanThread()
-			self.zct.setZap(self.zap)
+			self.zct.setZapPlugin(self)
 			self.zct.setTarget(self.getValue("target"))
 			self.zct.start()
 			self.state = MinionPlugin.STATUS_RUNNING
@@ -159,7 +207,12 @@ class ZapPlugin(MinionPlugin):
 			Not currently using: reference, param, attack
 			And should combine alerts listing all of the related urls instead of including them individually 
 		'''
-		for alert in self.zap.alerts:
+		if hasattr(self, 'results'):
+			alerts = self.results
+		else:
+			alerts = self.zap.alerts
+	
+		for alert in alerts:
 			issues.append({
 				"Summary" : alert.get('alert'), 
 				"Description" : alert.get('description'), 

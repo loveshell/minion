@@ -38,6 +38,12 @@ class ZapPluginTestCase(unittest.TestCase):
             sleep(5)
             
         print plugin.getResults()
+        
+    def XXtestStartZAP(self):
+        plugin = ZapPlugin()
+        plugin.start_zap()
+        sleep(30)
+        plugin.stop_zap()
             
 
 if __name__ == "__main__":
