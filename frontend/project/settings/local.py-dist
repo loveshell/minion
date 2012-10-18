@@ -90,7 +90,7 @@ ACCEPTED_USER_DOMAINS = [
     'mozilla.org',
 ]
 
-s setting to the public IP of your server. This needs to match
+#setting to the public IP of your server. This needs to match
 #otherwise BrowserID will fail.
 SITE_URL = "http://127.0.0.1:8000"
 
