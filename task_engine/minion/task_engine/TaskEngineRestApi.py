@@ -188,5 +188,3 @@ def get_plugin_service_session_results(service_name, session):
         return task_engine.get_plugin_service_session_results(service_name, session)
     except TaskEngineError as e:
         return { "success" : False, "message" : e}
-
-run(app, host='localhost', port=8181)
