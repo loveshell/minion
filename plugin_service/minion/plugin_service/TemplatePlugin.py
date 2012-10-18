@@ -1,5 +1,6 @@
 # A simple Template plugin
 
+import logging
 from MinionPlugin import MinionPlugin
 
 class TemplatePlugin(MinionPlugin):
@@ -40,12 +41,15 @@ class TemplatePlugin(MinionPlugin):
 
 
 	def do_validate(self, config):
+		logging.debug("TemplatePlugin.do_validate")
 		return True
 
 	def do_validate_key(self, key, value):
+		logging.debug("TemplatePlugin.do_validate_key")
 		return True
 
 	def do_status(self):
+		logging.debug("TemplatePlugin.do_status")
 		if self.state is MinionPlugin.STATUS_RUNNING:
 			''' Fake progress - inc 10% each time ;) '''
 			self.progress += 10
@@ -58,26 +62,32 @@ class TemplatePlugin(MinionPlugin):
 		return self.create_status(True, self.messages[self.state], self.state)
 
 	def do_start(self):
+		logging.debug("TemplatePlugin.do_start")
 		self.state = MinionPlugin.STATUS_RUNNING
 		#return self.create_status(True, self.messages[self.state], self.state)
 		return self.create_std_status(True, self.state)
 
 	def do_suspend(self):
+		logging.debug("TemplatePlugin.do_suspend")
 		self.state = MinionPlugin.STATUS_WAITING
 		return self.create_status(True, self.messages[self.state], self.state)
 
 	def do_resume(self):
+		logging.debug("TemplatePlugin.do_resume")
 		self.state = MinionPlugin.STATUS_RUNNING
 		return self.create_status(True, self.messages[self.state], self.state)
 
 	def do_terminate(self):
+		logging.debug("TemplatePlugin.do_terminate")
 		self.state = MinionPlugin.STATUS_CANCELLED
 		return self.create_status(True, self.messages[self.state], self.state)
 
 	def do_get_states(self):
+		logging.debug("TemplatePlugin.do_get_states")
 		return self.allow_states[self.state]
 
 	def do_get_results(self):
+		logging.debug("TemplatePlugin.do_get_results")
 		''' Base on the faked progress '''
 		issues = [] 
 		if self.progress >= 20:
