@@ -9,7 +9,7 @@ from django.core.context_processors import csrf
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
-from TaskEngineClient import TaskEngineClient
+from minion.task_engine.TaskEngineClient import TaskEngineClient
 
 log = commonware.log.getLogger('playdoh')
 
