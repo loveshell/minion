@@ -4,7 +4,7 @@ Created on 25 Sep 2012
 @author: test
 '''
 import unittest
-from TaskEngineClient import TaskEngineClient
+from minion.task_engine.TaskEngineClient import TaskEngineClient
 
 class TaskEngineTestCase(unittest.TestCase):
 

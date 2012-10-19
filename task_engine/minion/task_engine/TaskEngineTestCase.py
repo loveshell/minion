@@ -4,11 +4,11 @@ Created on 25 Sep 2012
 @author: test
 '''
 import unittest
-from TaskEngine import TaskEngine
-from TaskEngineClient import TaskEngineClient
-from PluginService import PluginService, PluginServiceError
-from MinionPlugin import MinionPlugin
-from TemplatePlugin import TemplatePlugin
+from minion.task_engine.TaskEngine import TaskEngine
+from minion.task_engine.TaskEngineClient import TaskEngineClient
+from minion.plugin_service.PluginService import PluginService, PluginServiceError
+from minion.plugin_service.MinionPlugin import MinionPlugin
+from minion.plugin_service.TemplatePlugin import TemplatePlugin
 
 class TaskEngineTestCase(unittest.TestCase):
 
