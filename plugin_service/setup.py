@@ -18,4 +18,5 @@ setup(name="minion.plugin_service",
       namespace_packages=['minion'],
       include_package_data=True,
       install_requires = install_requires,
+      test_suite = 'minion.plugin_service.tests',
       scripts=['scripts/minion-plugin-service'])

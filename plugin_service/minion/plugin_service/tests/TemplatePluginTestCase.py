@@ -4,8 +4,8 @@ Created on 24 Sep 2012
 @author: test
 '''
 import unittest
-from MinionPlugin import MinionPlugin
-from TemplatePlugin import TemplatePlugin
+from minion.plugin_service.MinionPlugin import MinionPlugin
+from minion.plugin_service.TemplatePlugin import TemplatePlugin
 
 
 class TemplatePluginTestCase(unittest.TestCase):
