@@ -5,7 +5,8 @@
 from setuptools import setup
 
 install_requires = [
-    'bottle==0.11.2'
+    'bottle==0.11.2',
+    'requests==0.14.1'
 ]
 
 setup(name="minion.task_engine",
