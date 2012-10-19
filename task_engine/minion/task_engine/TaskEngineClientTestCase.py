@@ -3,15 +3,29 @@ Created on 25 Sep 2012
 
 @author: test
 '''
+
+import random
 import unittest
+import threading
+
 from minion.task_engine.TaskEngineClient import TaskEngineClient
+
+class ServerThread(threading.Thread):
+    def __init__(self, port):
+        threading.Thread.__init__(self)
+        self.port = port
+    def run(self):
+        from minion.task_engine.TaskEngineRestApi import app
+        from bottle import run
+        run(app, host="127.0.0.1", port=self.port, quiet=True, reloader=True)
 
 class TaskEngineTestCase(unittest.TestCase):
 
-
     def setUp(self):
-        pass
-
+        self.server_port = random.randint(16384,32767)
+        self.server_thread = ServerThread(self.server_port)
+        self.server_thread.daemon = True
+        self.server_thread.start()
 
     def tearDown(self):
         pass
@@ -20,7 +34,7 @@ class TaskEngineTestCase(unittest.TestCase):
         ''' Was hoping to be able to use the TaskEngineTestCase for testing the client, but
         there are reasons why its not easy to do that right now
         '''
-        te = TaskEngineClient("http://localhost:8181")
+        te = TaskEngineClient("http://127.0.0.1:" + str(self.server_port))
         
         ''' Should now be one plugin '''
         result = te.get_all_plugins()
