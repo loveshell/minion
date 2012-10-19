@@ -1,5 +1,6 @@
 
 VIRTUALENV=virtualenv
+INSTALL=pip install --quiet
 
 .PHONY: all build test clean
 
@@ -7,6 +8,8 @@ all: build
 
 setup:
 	$(VIRTUALENV) --no-site-packages .
+	$(INSTALL) nosexcover
+	$(INSTALL) pylint
 
 eggs: setup
 	(cd plugin_service; ../bin/python setup.py bdist_egg)
@@ -17,8 +20,8 @@ develop: setup
 	(cd task_engine; ../bin/python setup.py develop)
 
 test: develop
-	(cd plugin_service; ../bin/python setup.py test)
-	(cd task_engine; ../bin/python setup.py test)
+	(cd plugin_service; ../bin/nosetests --with-xcoverage --with-xunit --cover-package=minion.plugin_service.tests --cover-erase)
+	(cd task_engine; ../bin/nosetests --with-xcoverage --with-xunit --cover-package=minion.task_engine.tests --cover-erase)
 
 clean:
 	rm -rf bin lib include
