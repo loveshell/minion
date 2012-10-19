@@ -4,8 +4,8 @@ Created on 25 Sep 2012
 @author: test
 '''
 import unittest
-from PluginService import PluginService, PluginServiceError
-from MinionPlugin import MinionPlugin
+from minion.plugin_service.PluginService import PluginService, PluginServiceError
+from minion.plugin_service.MinionPlugin import MinionPlugin
 
 
 class PluginServiceTestCase(unittest.TestCase):
@@ -131,8 +131,6 @@ class PluginServiceTestCase(unittest.TestCase):
         if (not found):
             self.fail("Unexpected plugin returned %s" % result)
             
-        result = service.get_plugin_config("TemplatePlugin")
-
         ''' start a valid session '''
         result = service.create_session("TemplatePlugin")
         if (result is None or "session" not in result):
@@ -141,7 +139,11 @@ class PluginServiceTestCase(unittest.TestCase):
         
         result = service.set_plugin_config(session, {"target" : "http://localhost:8080" })
 
-        result = service.get_plugin_config("TemplatePlugin")
+        result = service.get_plugin_config(session)
+        if result is None:
+            self.fail("Failed to find plugin config")
+        if result.get('target') != "http://localhost:8080":
+            self.fail("Plugin config did not contain correct target")
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
