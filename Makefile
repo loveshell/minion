@@ -1,6 +1,6 @@
 
 VIRTUALENV=virtualenv
-INSTALL=pip install --quiet
+INSTALL=bin/pip install --quiet
 
 .PHONY: all build test clean
 
