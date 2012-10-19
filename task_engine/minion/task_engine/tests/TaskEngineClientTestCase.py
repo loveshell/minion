@@ -7,6 +7,7 @@ Created on 25 Sep 2012
 import random
 import unittest
 import threading
+import time
 
 from minion.task_engine.TaskEngineClient import TaskEngineClient
 
@@ -17,7 +18,7 @@ class ServerThread(threading.Thread):
     def run(self):
         from minion.task_engine.TaskEngineRestApi import app
         from bottle import run
-        run(app, host="127.0.0.1", port=self.port, quiet=True, reloader=True)
+        run(app, host="127.0.0.1", port=self.port)
 
 class TaskEngineTestCase(unittest.TestCase):
 
@@ -26,6 +27,7 @@ class TaskEngineTestCase(unittest.TestCase):
         self.server_thread = ServerThread(self.server_port)
         self.server_thread.daemon = True
         self.server_thread.start()
+        time.sleep(2.5) # Give the server a little time start
 
     def tearDown(self):
         pass

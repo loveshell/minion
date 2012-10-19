@@ -19,4 +19,5 @@ setup(name="minion.task_engine",
       namespace_packages=['minion'],
       include_package_data=True,
       install_requires = install_requires,
+      test_suite = 'minion.task_engine.tests',
       scripts=['scripts/minion-task-engine'])
