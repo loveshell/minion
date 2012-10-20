@@ -8,7 +8,7 @@ all: build
 
 setup:
 	$(VIRTUALENV) .
-	#$(INSTALL) nosexcover
+	$(INSTALL) nose
 	#$(INSTALL) pylint
 
 eggs:
@@ -20,10 +20,10 @@ develop:
 	(cd task_engine; ../bin/python setup.py develop)
 
 test:
-	(cd plugin_service; ../bin/python setup.py test)
-	(cd task_engine; ../bin/python setup.py test)
-	#(cd plugin_service; ../bin/nosetests --with-xcoverage --with-xunit --cover-package=minion.plugin_service.tests --cover-erase)
-	#(cd task_engine; ../bin/nosetests --with-xcoverage --with-xunit --cover-package=minion.task_engine.tests --cover-erase)
+	#(cd plugin_service; ../bin/python setup.py test)
+	#(cd task_engine; ../bin/python setup.py test)
+	(cd plugin_service; ../bin/nosetests --with-xunit minion/plugin_service/tests/*.py)
+	(cd task_engine; ../bin/nosetests --with-xunit minion/task_engine/tests/*.py)
 
 clean:
 	rm -rf bin lib include
