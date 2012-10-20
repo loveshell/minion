@@ -8,8 +8,8 @@ all: build
 
 setup:
 	$(VIRTUALENV) .
-	$(INSTALL) nosexcover
-	$(INSTALL) pylint
+	#$(INSTALL) nosexcover
+	#$(INSTALL) pylint
 
 eggs:
 	(cd plugin_service; ../bin/python setup.py bdist_egg)
@@ -20,8 +20,10 @@ develop:
 	(cd task_engine; ../bin/python setup.py develop)
 
 test:
-	(cd plugin_service; ../bin/nosetests --with-xcoverage --with-xunit --cover-package=minion.plugin_service.tests --cover-erase)
-	(cd task_engine; ../bin/nosetests --with-xcoverage --with-xunit --cover-package=minion.task_engine.tests --cover-erase)
+	(cd plugin_service; ../bin/python setup.py test)
+	(cd task_engine; ../bin/python setup.py test)
+	#(cd plugin_service; ../bin/nosetests --with-xcoverage --with-xunit --cover-package=minion.plugin_service.tests --cover-erase)
+	#(cd task_engine; ../bin/nosetests --with-xcoverage --with-xunit --cover-package=minion.task_engine.tests --cover-erase)
 
 clean:
 	rm -rf bin lib include
