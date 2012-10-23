@@ -68,26 +68,27 @@ class PluginService(object):
                 "session" : session, 
                 "message" : "Created new session for plugin '%s'" % plugin_name }
     
-    def get_plugin_config(self, session):
-        print 'PluginService.get_plugin_config(%s, %s)' % (self, session)
+    def get_session_config(self, session):
+        print 'PluginService.get_session_config(%s, %s)' % (self, session)
         if (session not in self.sessions):
             raise PluginServiceError("Unknown session %s" % session)
         sess = self.sessions[session]
         return sess["plugin"].getConfig()
 
-    def set_plugin_config(self, session, config):
+    ''' Note that this is not currently available via the REST API '''
+    def set_session_config(self, session, config):
         if (session not in self.sessions):
             raise PluginServiceError("Unknown session %s" % session)
         sess = self.sessions[session]
         sess["plugin"].setConfig(config)
 
-    def get_plugin_value(self, session, key):
+    def get_session_value(self, session, key):
         if (session not in self.sessions):
             raise PluginServiceError("Unknown session %s" % session)
         sess = self.sessions[session]
         return sess["plugin"].getValue(key)
 
-    def set_plugin_value(self, session, key, value):
+    def set_session_value(self, session, key, value):
         if (session not in self.sessions):
             raise PluginServiceError("Unknown session %s" % session)
         sess = self.sessions[session]
@@ -138,3 +139,5 @@ class PluginService(object):
             raise PluginServiceError("Unknown session %s" % session)
         sess = self.sessions[session]
         return sess["plugin"].getResults()
+
+

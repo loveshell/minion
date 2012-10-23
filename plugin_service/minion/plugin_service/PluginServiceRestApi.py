@@ -29,6 +29,13 @@ def get_info():
         abort(401, "Unauthorized request.")
     return service.get_info()
 
+@app.get("/plugins")
+def get_plugins(self):
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
+    return service.get_plugins()
+
+
 @app.put("/session/create/<plugin_name>")
 def create_session(plugin_name):
     if (not is_authorized(request)):
@@ -53,6 +60,36 @@ def terminate_session(session):
         abort(401, "Unauthorized request.")
     try:
         return service.terminate_session(session)
+    except PluginServiceError as e:
+        return { "success" : False, "message" : e}
+
+@app.get("/session/<session>/config")
+def get_session_config(self, session):
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
+    try:
+        return service.get_session_config(session)
+    except PluginServiceError as e:
+        return { "success" : False, "message" : e}
+
+@app.get("/session/<session>/value")
+def get_session_value(self, session):
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
+    try:
+        key = request.query.key
+        return service.get_session_value(session, key)
+    except PluginServiceError as e:
+        return { "success" : False, "message" : e}
+
+@app.put("/session/<session>/value")
+def set_session_value(self, session):
+    if (not is_authorized(request)):
+        abort(401, "Unauthorized request.")
+    try:
+        key = request.query.key
+        value = request.query.value
+        return service.set_session_value(session, key, value)
     except PluginServiceError as e:
         return { "success" : False, "message" : e}
 

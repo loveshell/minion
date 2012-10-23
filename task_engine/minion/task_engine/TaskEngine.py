@@ -122,7 +122,7 @@ class TaskEngine(object):
     def set_plugin_service_session_config(self, service_name, session, config):
         ps = self.__get_plugin_service__(service_name)
         try:
-            ps.set_plugin_config(session, config)
+            ps.set_session_config(session, config)
         except Exception as e:
             print "TaskEngine exception %s" % e
             raise TaskEngineError(e)
@@ -131,7 +131,7 @@ class TaskEngine(object):
         ps = self.__get_plugin_service__(service_name)
         try:
             result = {"plugin_service" : ps.get_info()}
-            result.update(ps.get_plugin_config(session))
+            result.update(ps.get_session_config(session))
             return result
         except Exception as e:
             print "TaskEngine exception %s" % e
@@ -140,7 +140,7 @@ class TaskEngine(object):
     def set_plugin_service_session_value(self, service_name, session, key, value):
         ps = self.__get_plugin_service__(service_name)
         try:
-            ps.set_plugin_value(session, key, value)
+            ps.set_session_value(session, key, value)
         except Exception as e:
             print "TaskEngine exception %s" % e
             raise TaskEngineError(e)
