@@ -1,15 +1,15 @@
 '''
 Created on 25 Sep 2012
 
-@author: test
+@author: psiinon
 
 Simple wrapper around the TaskEngine providing, yes, a REST API
 
 '''
-from TaskEngine import TaskEngine, TaskEngineError
-from minion.plugin_service.PluginService import PluginService
+from minion.task_engine.engine import TaskEngine, TaskEngineError
+from minion.plugin_service.service import PluginService
 #from bottle import abort, get, put, post, delete, request, run
-from bottle import Bottle, abort, run, request
+from bottle import Bottle, abort, request
 
 keys = [ 
         "64c4c469ab0743a368d00466e1eb8608",  

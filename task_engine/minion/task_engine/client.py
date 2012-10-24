@@ -1,7 +1,7 @@
 '''
 Created on 25 Sep 2012
 
-@author: test
+@author: psiinon
 
 Simple wrapper around the TaskEngine providing, yes, a REST API
 

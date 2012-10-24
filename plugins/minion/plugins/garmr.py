@@ -1,4 +1,4 @@
-from MinionPlugin import MinionPlugin
+from minion.plugins.minionBase import MinionPlugin
 
 class GarmrPlugin(MinionPlugin):
 

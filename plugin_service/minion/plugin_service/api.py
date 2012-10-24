@@ -1,14 +1,14 @@
 '''
 Created on 25 Sep 2012
 
-@author: test
+@author: psiinon
 
 Simple wrapper around the PluginService providing, yes, a REST API
 
 '''
-from PluginService import PluginService, PluginServiceError
+from minion.plugin_service.service import PluginService, PluginServiceError
 #from bottle import abort, get, put, post, delete, request, run
-from bottle import Bottle, abort, run, request
+from bottle import Bottle, abort, request
 
 keys = [ 
         "64c4c469ab0743a368d00466e1eb8608",  

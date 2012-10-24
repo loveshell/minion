@@ -4,8 +4,8 @@ Created on 25 Sep 2012
 @author: test
 '''
 import unittest
-from minion.plugin_service.PluginService import PluginService, PluginServiceError
-from minion.plugin_service.MinionPlugin import MinionPlugin
+from minion.plugin_service.service import PluginService, PluginServiceError
+from minion.plugins.minionBase import MinionPlugin
 
 
 class PluginServiceTestCase(unittest.TestCase):

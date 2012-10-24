@@ -6,7 +6,7 @@ And the script will need tweaking on Linux, as theres no default directory -
 right now you'll need to hard code that - plan to add config file support soon.
 '''
 
-from MinionPlugin import MinionPlugin
+from minion.plugins.minionBase import MinionPlugin
 import threading
 import time
 import logging

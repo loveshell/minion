@@ -1,7 +1,7 @@
 # A simple Template plugin
 
 import logging
-from MinionPlugin import MinionPlugin
+from minion.plugins.minionBase import MinionPlugin
 
 class TemplatePlugin(MinionPlugin):
 

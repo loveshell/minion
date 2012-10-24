@@ -1,11 +1,12 @@
 '''
 Created on 24 Sep 2012
 
-@author: test
+@author: psiinon
 '''
 import unittest
-from minion.plugin_service.MinionPlugin import MinionPlugin
-from minion.plugin_service.TemplatePlugin import TemplatePlugin
+from minion.plugins.minionBase import MinionPlugin
+from minion.plugins.template import TemplatePlugin
+
 
 
 class TemplatePluginTestCase(unittest.TestCase):

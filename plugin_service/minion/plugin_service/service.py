@@ -1,14 +1,14 @@
 '''
 Created on 25 Sep 2012
 
-@author: test
+@author: psiinon
 
 This class should present the same interface as PluginServiceClient so the caller doesnt need to
 know whether they are talking to a local or remote service.
 
 '''
 import os
-from minion.plugin_service.TemplatePlugin import TemplatePlugin
+from minion.plugins.template import TemplatePlugin
 
 ''' Version allows us to identify and support different versions of the PluginService '''
 VERSION = 1

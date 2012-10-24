@@ -1,7 +1,7 @@
 '''
 Created on 25 Sep 2012
 
-@author: test
+@author: psiinon
 '''
 
 import random
@@ -9,14 +9,14 @@ import unittest
 import threading
 import time
 
-from minion.task_engine.TaskEngineClient import TaskEngineClient
+from minion.task_engine.client import TaskEngineClient
 
 class ServerThread(threading.Thread):
     def __init__(self, port):
         threading.Thread.__init__(self)
         self.port = port
     def run(self):
-        from minion.task_engine.TaskEngineRestApi import app
+        from minion.task_engine.api import app
         from bottle import run
         run(app, host="127.0.0.1", port=self.port)
 

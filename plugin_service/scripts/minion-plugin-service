@@ -2,7 +2,7 @@
 
 import logging
 from optparse import OptionParser
-from minion.plugin_service.PluginServiceRestApi import app
+from minion.plugin_service.api import app
 from bottle import run
 
 if __name__ == "__main__":

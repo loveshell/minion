@@ -1,11 +1,11 @@
 '''
 Created on 24 Sep 2012
 
-@author: test
+@author: psiinon
 '''
 import unittest
-from MinionPlugin import MinionPlugin
-from ZapPlugin import ZapPlugin
+from minion.plugins.minionBase import MinionPlugin
+from minion.plugins.zap import ZapPlugin
 from time import sleep
 
 class ZapPluginTestCase(unittest.TestCase):

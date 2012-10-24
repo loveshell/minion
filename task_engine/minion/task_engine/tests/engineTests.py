@@ -1,14 +1,14 @@
 '''
 Created on 25 Sep 2012
 
-@author: test
+@author: psiinon
 '''
 import unittest
-from minion.task_engine.TaskEngine import TaskEngine
-from minion.task_engine.TaskEngineClient import TaskEngineClient
-from minion.plugin_service.PluginService import PluginService, PluginServiceError
-from minion.plugin_service.MinionPlugin import MinionPlugin
-from minion.plugin_service.TemplatePlugin import TemplatePlugin
+from minion.task_engine.engine import TaskEngine
+from minion.task_engine.client import TaskEngineClient
+from minion.plugin_service.service import PluginService, PluginServiceError
+from minion.plugins.minionBase import MinionPlugin
+from minion.plugins.template import TemplatePlugin
 
 class TaskEngineTestCase(unittest.TestCase):
 
