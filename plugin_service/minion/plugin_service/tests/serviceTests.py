@@ -87,7 +87,7 @@ class PluginServiceTestCase(unittest.TestCase):
             self.fail("Unexpected result - should have failed %s" % result)
             
         ''' Should work ok '''
-        service.set_plugin_config(session, {"target" : "http://localhost"})
+        service.set_session_config(session, {"target" : "http://localhost"})
         result = service.set_session_state(session, MinionPlugin.STATE_START)
         if ( result["status"] is not MinionPlugin.STATUS_RUNNING):
             self.fail("Unexpected result - should have worked %s" % result)
@@ -137,9 +137,9 @@ class PluginServiceTestCase(unittest.TestCase):
             self.fail("Failed to start session %s" % result)
         session = result["session"]
         
-        result = service.set_plugin_config(session, {"target" : "http://localhost:8080" })
+        result = service.set_session_config(session, {"target" : "http://localhost:8080" })
 
-        result = service.get_plugin_config(session)
+        result = service.get_session_config(session)
         if result is None:
             self.fail("Failed to find plugin config")
         if result.get('target') != "http://localhost:8080":
