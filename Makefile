@@ -25,7 +25,7 @@ test:
 	#(cd plugin_service; ../bin/python setup.py test)
 	#(cd task_engine; ../bin/python setup.py test)
 	(cd plugin_service; ../bin/nosetests --with-xunit minion/plugin_service/tests/*.py)
-	(cd plugins; ../bin/nosetests --with-xunit minion/plugins/tests/*.py)
+	#(cd plugins; ../bin/nosetests --with-xunit minion/plugins/tests/*.py)
 	(cd task_engine; ../bin/nosetests --with-xunit minion/task_engine/tests/*.py)
 
 clean:
