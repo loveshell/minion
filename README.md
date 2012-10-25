@@ -21,6 +21,7 @@ Create a virtualenv and configure the three modules of minion:
     $ source env/bin/activate
 
     $ (cd plugin_service; python setup.py develop)
+    $ (cd plugins; python setup.py develop)
     $ (cd task_engine; python setup.py develop)
 
     $ cd frontend
