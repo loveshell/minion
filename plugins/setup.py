@@ -5,7 +5,7 @@
 from setuptools import setup
 
 install_requires = [
-    'bottle==0.11.2'
+    'python-owasp-zap==0.0.1'
 ]
 
 setup(name="minion.plugins",

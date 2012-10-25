@@ -5,7 +5,7 @@ Created on 24 Sep 2012
 '''
 import unittest
 from minion.plugins.minionBase import MinionPlugin
-from minion.plugins.zap import ZapPlugin
+from minion.plugins.zap_plugin import ZapPlugin
 from time import sleep
 
 class ZapPluginTestCase(unittest.TestCase):
