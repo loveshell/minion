@@ -8,26 +8,29 @@ all: build
 
 setup:
 	$(VIRTUALENV) env
-
-eggs:
-	(cd minion-plugin-service; ../env/bin/python setup.py bdist_egg)
-	(cd minion-nmap-plugin; ../env/bin/python setup.py bdist_egg)
-	(cd minion-garmr-plugin; ../env/bin/python setup.py bdist_egg)
-	(cd minion-task-engine; ../env/bin/python setup.py bdist_egg)
+	# These are not in PyPi
+	(cd dependencies/klein && ../../env/bin/python setup.py install)
+	(cd dependencies/garmr && ../../env/bin/python setup.py install)
 
 develop:
-	(cd minion-plugin-service; ../env/bin/python setup.py develop)
-	(cd minion-nmap-plugin; ../env/bin/python setup.py develop)
-	(cd minion-garmr-plugin; ../env/bin/python setup.py develop)
-	(cd minion-task-engine; ../env/bin/python setup.py develop)
+	(cd plugin-service; ../env/bin/python setup.py develop)
+	(cd task-engine; ../env/bin/python setup.py develop)
+	(cd plugins/garmr; ../../env/bin/python setup.py develop)
+	(cd plugins/nmap; ../../env/bin/python setup.py develop)
 
 test:
-	(cd minion-plugin-service; ../env/bin/python setup.py test)
-	(cd minion-nmap-plugin; ../env/bin/python setup.py test)
-	(cd minion-garmr-plugin; ../env/bin/python setup.py test)
-	(cd minion-task-engine; ../env/bin/python setup.py test)
+	(cd plugin-service; ../env/bin/python setup.py test)
+	(cd task-engine; ../env/bin/python setup.py test)
+	(cd plugins/garmr; ../../env/bin/python setup.py test)
+	(cd plugins/nmap; ../../env/bin/python setup.py test)
+
+eggs:
+	(cd plugin-service; ../env/bin/python setup.py bdist_egg)
+	(cd task-engine; ../env/bin/python setup.py bdist_egg)
+	(cd plugins/garmr; ../../env/bin/python setup.py bdist_egg)
+	(cd plugins/nmap; ../../env/bin/python setup.py bdist_egg)
 
 clean:
-	rm -rf env bin lib include
-	rm -rf minion-*/*.egg minion-*/*.egg-info minion-*/nosetests.xml minion-*/dist minion-*/build
+	rm -rf env
+	rm -rf */*.egg */*.egg-info */nosetests.xml */dist */build
 
