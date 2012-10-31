@@ -12,7 +12,7 @@ Setting up a development environment
 
 Grab the code. The --recursive option is important because the project has git submodules that need to be recursively checked out.
 
-    $ git clone --recursive https://github.com/st3fan/minion
+    $ git clone --recursive https://github.com/ygjb/minion
 
 Using the Makefile you can setup the virtualenv and setup the code for development:
 
