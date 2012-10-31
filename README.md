@@ -10,6 +10,14 @@ Full [documentation][docs] is available as well.
 Setting up a development environment
 ------------------------------------
 
+If you work on Ubuntu, install the following packages:
+
+    $ sudo apt-get install build-essentials python-virtualenv python-dev mysql-client
+
+If you work on Fedora, install the following packages:
+
+    $ sudo yum install ... TODO
+
 Grab the code. The --recursive option is important because the project has git submodules that need to be recursively checked out.
 
     $ git clone --recursive https://github.com/ygjb/minion
@@ -21,7 +29,7 @@ Using the Makefile you can setup the virtualenv and setup the code for developme
 
 To setup the frontend you need to copy the template `local.py-dist` to `local.py`:
 
-    $ cp project/settings/local.py-dist project/settings/local.py
+    $ cp frontend/project/settings/local.py-dist frontend/project/settings/local.py
 
 Minion requires a MySQL database. By default it uses minion as the database, username and password and expects the database to be running on localhost. You can change these settings in projects/settings/local.py.
 
@@ -81,9 +89,9 @@ Start the frontend in a new shell window:
 
     $ cd minion
     $ source env/bin/activate
-    $ cd frontend
-    $ python manage.py syncdb
-    $ python manage.py runserver 127.0.0.0:8000
+    (env) $ cd frontend
+    (env) $ python manage.py syncdb
+    (env) $ python manage.py runserver 127.0.0.0:8000
     Validating models...
 
     0 errors found
