@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import json
+import sys
+import time
+
+import requests
+
+if __name__ == "__main__":
+
+    config = sys.argv[1]
+
+    sessions = []
+
+    # Create sessions
+
+    for plugin_name in sys.argv[2:]:
+        #print "Creating plugin session for %s" % plugin_name
+        r = requests.put("http://127.0.0.1:8181/session/create/%s" % plugin_name, data=config)
+        r.raise_for_status()
+        create_response = r.json
+        if create_response['success']:
+            #print " Success " + create_response['session']['id']
+            sessions.append(create_response['session'])
+
+    # Start sessions
+
+    for session in sessions:
+        #print "Starting plugin session %s / %s" % (session['id'], session['plugin_name'])
+        r = requests.put("http://127.0.0.1:8181/session/%s/state" % session['id'], data="START")
+        r.raise_for_status()
+
+    # Loop until they are all finished
+
+    while True:
+        print "%-36s %-50s %-12s %-10s" % ('-' * 36, '-' * 50, '-' * 12, '-' * 10)
+        print "%-36s %-50s %-12s %-10s" % ("SESSION", "PLUGIN", "STATE", "DURATION")
+        print "%-36s %-50s %-12s %-10s" % ('-' * 36, '-' * 50, '-' * 12, '-' * 10)
+        done = True
+        for session in sessions:
+            r = requests.get("http://127.0.0.1:8181/session/%s" % session['id'])
+            r.raise_for_status()
+            session_info = r.json['session']
+            print "%-36s %-50s %-12s %-10s" % (session_info['id'], session_info['plugin_name'], session_info['state'], time.strftime('%H:%M:%S', time.gmtime(session_info['duration'])))
+            if session_info['state'] not in ('FINISHED', 'FAILED', 'ABORTED'):
+                done = False
+        time.sleep(1.0)
+        if done:
+            break
+
+    # Print results
+
+    for session in sessions:
+        r = requests.get("http://127.0.0.1:8181/session/%s/results" % session['id'])
+        r.raise_for_status()
+        
+        print "\nResults for %s %s:" % (session['id'], session['plugin_name'])
+        print "-" * 100
+
+        results = r.json['results']
+        if len(results):
+            print json.dumps(results, sort_keys=True, indent=4)
+        else:
+            print "No results"
+        

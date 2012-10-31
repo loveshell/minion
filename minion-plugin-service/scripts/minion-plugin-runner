@@ -1,0 +1,238 @@
+#!/usr/bin/env python
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import json
+import logging
+import os
+import sys
+import importlib
+import optparse
+
+import zope.interface
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred
+from twisted.internet.defer import DeferredSemaphore
+from twisted.internet.defer import succeed
+from twisted.internet.task import deferLater
+from twisted.internet.protocol import Protocol
+from twisted.web.client import Agent
+from twisted.web.http_headers import Headers
+from twisted.web.iweb import IBodyProducer
+from twisted.web.client import getPage
+
+from minion.plugin_api import AbstractPlugin, IPluginRunnerCallbacks, IPlugin
+
+class SimpleCallbacks:
+
+    """
+    These callbacks just log things locally. It would be replaced by
+    an implementation that reports back to the plugin service. Useful
+    for debugging or running plugins from the command line for testing
+    or developing.
+    """
+    
+    zope.interface.implements(IPluginRunnerCallbacks)
+
+    def __init__(self, session_configuration):
+        self.session_configuration = session_configuration
+        self.results = []
+
+    def report_progress(self, percentage, description = ""):
+        if description: description = " (" + description + ")"
+        logging.debug("Plugin reported progress: %d%%%s" % (percentage, description))
+
+    def report_results(self, results):
+        logging.debug("Plugin reported results: %s" % str(results))
+        self.results += results
+
+    def report_errors(self, errors):
+        logging.debug("Plugin reported errors: %s" % str(errors))
+
+    def report_finish(self):
+        logging.debug("Plugin is finished")
+        print json.dumps(self.results, indent=4, sort_keys=True)
+        reactor.stop()
+
+    def report_abort(self, exit_code = 1):
+        self.runner.exit_code = exit_code
+        reactor.stop()
+
+    def configuration(self):
+        logging.debug("SimpleCallbacks.configuration: " + str(self.session_configuration))
+        deferred = Deferred()
+        reactor.callLater(0, deferred.callback, self.session_configuration)
+        return deferred
+
+class StringProducer(object):
+
+    zope.interface.implements(IBodyProducer)
+
+    def __init__(self, body):
+        self.body = body
+        self.length = len(body)
+
+    def startProducing(self, consumer):
+        consumer.write(self.body)
+        return succeed(None)
+
+    def pauseProducing(self):
+        pass
+
+    def stopProducing(self):
+        pass
+
+class JSONResponseProtocol(Protocol):
+
+    def __init__(self, finished):
+        self.finished = finished
+        self.data = ""
+        
+    def dataReceived(self, data):
+        self.data += data
+
+    def connectionLost(self, reason):
+        data = json.loads(self.data)
+        self.finished.callback(data)
+
+class PluginServiceCallbacks:
+
+    zope.interface.implements(IPluginRunnerCallbacks)
+
+    def __init__(self, plugin_service_api, plugin_session_id):
+        self.plugin_service_api = plugin_service_api
+        self.plugin_session_id = plugin_session_id
+        self.semaphore = DeferredSemaphore(1)
+
+    def _genericErrorBack(self, failure):
+        # How to log this better?
+        failure.printTraceback()
+        failure.value.reasons[0].printTraceback()
+
+    def _post(self, path, data):
+        agent = Agent(reactor)
+        body = StringProducer(json.dumps(data))
+        headers = Headers({'Content-Type': ['application/json'], 'User-Agent': ['Minion PluginRunner']})
+        logging.debug("POSTing %s to %s" % (data, self.plugin_service_api + path))
+        d =  agent.request('POST', self.plugin_service_api + path, headers, body)
+        d.addErrback(self._genericErrorBack)
+        return d
+
+    def _get(self, path):
+        logging.debug("GOING TO GET")
+        return getPage(self.plugin_service_api + path)
+
+    def _stop_reactor_async(self):
+        return deferLater(reactor, 0, lambda: reactor.stop())
+
+    def _post_async(self, path, data):
+        d = deferLater(reactor, 0, lambda: self._post(path, data))
+        d.addErrback(self._genericErrorBack)
+        return d
+
+    def report_progress(self, percentage, description = ""):
+        logging.debug("PluginServiceCallbacks.report_progress reported progress: %d/%s" % (percentage, str(description)))
+        self.semaphore.run(self._post_async, "/session/%s/report/progress" % self.plugin_session_id,
+                           { 'percentage': percentage, 'description': description })
+
+    def report_results(self, results):
+        logging.debug("PluginServiceCallbacks.report_results: " + str(results))
+        self.semaphore.run(self._post_async, "/session/%s/report/results" % self.plugin_session_id, results)
+
+    def report_errors(self, errors):
+        logging.debug("PluginServiceCallbacks.report_errors: " + str(errors))
+        self.semaphore.run(self._post_async, "/session/%s/report/errors" % self.plugin_session_id, errors)
+
+    def report_finish(self):
+        logging.debug("PluginServiceCallbacks.report_finish")
+        self.semaphore.run(self._post_async, "/session/%s/report/finish" % self.plugin_session_id, {})
+        self.semaphore.run(self._stop_reactor_async)
+                
+    def report_abort(self, exit_code = 1):
+        logging.debug("PluginServiceCallbacks.report_abort: %d" % exit_code)
+        # TODO Don't allow any any more calls after this. Enforce this.
+        self.runner.exit_code = exit_code
+        self.semaphore.run(self._stop_reactor_async)
+    
+    def configuration(self):
+        logging.debug("PluginServiceCallbacks.configuration")
+        return self._get("/session/%s/configuration" % self.plugin_session_id)
+    
+class PluginRunner:
+
+    def __init__(self, reactor, callbacks, plugin_module_name, plugin_class_name):
+
+        self.callbacks = callbacks
+        self.callbacks.runner = self
+        self.reactor = reactor
+        self.plugin_module_name = plugin_module_name
+        self.plugin_class_name = plugin_class_name
+        self.exit_code = 0
+
+        try:
+            self.plugin_module = importlib.import_module(self.plugin_module_name)
+            self.plugin_class = getattr(self.plugin_module, self.plugin_class_name)
+            self.plugin = self.plugin_class()
+            self.plugin.reactor = self.reactor
+            self.plugin.callbacks = self.callbacks
+        except Exception as e:
+            logging.exception("Failed to load plugin %s/%s" % (self.plugin_module_name, self.plugin_class_name))
+            sys.exit(1)
+
+    def run(self):
+
+        logging.debug("Starting %s" % str(self.plugin))
+
+        def configurationCallback(configuration):
+            logging.debug("MOOOOOO configurationCallback")
+            try:
+                self.plugin.configuration = json.loads(configuration)
+                self.plugin.do_configure()
+            except Exception as e:
+                logging.exception("Failed to configure plugin %s" % str(self.plugin))
+                self.callbacks.report_abort(exit_code = AbstractPlugin.EXIT_CODE_FAILED)
+            try:
+                self.plugin.do_start()
+            except Exception as e:
+                logging.exception("Failed to start plugin %s" % str(self.plugin))
+                self.callbacks.report_abort(exit_code = AbstractPlugin.EXIT_CODE_FAILED)
+        
+        deferred = self.callbacks.configuration()
+        deferred.addCallback(configurationCallback)
+
+        reactor.run()    
+        
+#
+# plugin-runner.py <module.Plugin>
+#
+
+if __name__ == "__main__":
+
+    parser = optparse.OptionParser()
+    parser.add_option("-d", "--debug", action="store_true")
+    parser.add_option("-c", "--configuration")
+    parser.add_option("-p", "--plugin")
+    
+    (options, args) = parser.parse_args()
+    
+    plugin_name = options.plugin
+
+    parts = plugin_name.split('.')
+    plugin_module_name = '.'.join(parts[:-1])
+    plugin_class_name = parts[-1]
+
+    level = logging.DEBUG if options.debug else logging.INFO    
+    logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
+    logging.debug("Running %s/%s" % (plugin_module_name, plugin_class_name))
+
+    if 'MINION_PLUGIN_SERVICE_API' in os.environ and 'MINION_PLUGIN_SESSION_ID' in os.environ:
+        callbacks = PluginServiceCallbacks(os.getenv('MINION_PLUGIN_SERVICE_API'), os.getenv('MINION_PLUGIN_SESSION_ID'))
+    else:
+        callbacks = SimpleCallbacks(options.configuration)
+
+    runner = PluginRunner(reactor, callbacks, plugin_module_name, plugin_class_name)
+    runner.run()
+    
+    sys.exit(runner.exit_code)

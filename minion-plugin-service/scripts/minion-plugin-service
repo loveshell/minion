@@ -1,0 +1,263 @@
+#!/usr/bin/env python
+
+import json
+import logging
+import optparse
+import os
+import time
+import uuid
+
+import zope.interface
+from twisted.internet import protocol
+from twisted.internet import reactor
+from twisted.internet.error import ProcessDone, ProcessTerminated
+from klein import run, route
+
+from minion.plugin_api import AbstractPlugin
+
+PLUGINS = {}
+SESSIONS = {}
+
+#
+#
+#
+
+class PluginRunnerProcessProtocol(protocol.ProcessProtocol):
+
+    def __init__(self, plugin_session):
+        self.plugin_session = plugin_session
+
+    def connectionMade(self):
+        logging.debug("PluginRunnerProcessProtocol.connectionMade")
+        pass
+
+    # TODO We should redirect plugin output to separate log files like date-session.{stdout,stderr}
+
+    def outReceived(self, data):
+        logging.debug("PluginRunnerProcessProtocol.outReceived: " + data)
+
+    def errReceived(self, data):
+        logging.debug("PluginRunnerProcessProtocol.errReceived: " + data)
+
+    def processEnded(self, reason):
+        #logging.debug("PluginRunnerProcessProtocol.processEnded %s" % str(reason))
+        self.plugin_session.duration = int(time.time()) - self.plugin_session.started
+        if isinstance(reason.value, ProcessDone):
+            self.plugin_session.state = 'FINISHED'
+        elif isinstance(reason.value, ProcessTerminated):
+            exit_code = reason.value.status / 256
+            if exit_code == AbstractPlugin.EXIT_CODE_ABORTED:
+                self.plugin_session.state = 'ABORTED' # User aborted
+            elif exit_code == AbstractPlugin.EXIT_CODE_FAILED:
+                self.plugin_session.state = 'FAILED'  # Failed because of an exception usually
+            else:
+                self.plugin_session.state = 'FAILED'  # ??? Can this happen if the plugin service catches all?
+
+class PluginSession:
+
+    """
+    This class represents one running plugin or its session. It handles the plugin state,
+    collecting from the plugin, etc.
+    """
+
+    def __init__(self, plugin_name, plugin_class, configuration):
+        self.plugin_name = plugin_name
+        self.plugin_class = plugin_class
+        self.configuration = configuration
+        self.id = str(uuid.uuid4())
+        self.state = 'CREATED'
+        self.started = int(time.time())
+        self.duration = None
+        self.results = []
+        self.errors = []
+        
+    def start(self):
+        logging.debug("PluginSession %s %s start()" % (self.id, self.plugin_name))
+        protocol = PluginRunnerProcessProtocol(self)
+        arguments = ["minion-plugin-runner", "-p", self.plugin_name]
+        environment = { 'MINION_PLUGIN_SERVICE_API': 'http://127.0.0.1:8181', 'MINION_PLUGIN_SESSION_ID': self.id, 'PATH': os.getenv('PATH') }
+        self.process = reactor.spawnProcess(protocol, "minion-plugin-runner", arguments, environment)
+        self.state = 'STARTED'
+
+    def stop(self):
+        logging.debug("PluginSession %s %s stop()" % (self.id, self.plugin_name))
+
+    def terminate(self):
+        logging.debug("PluginSession %s %s terminate()" % (self.id, self.plugin_name))
+
+    def summary(self):
+        return { 'id': self.id,
+                 'state': self.state,
+                 'configuration': self.configuration,
+                 'plugin_name': self.plugin_name,
+                 'started': self.started,
+                 'duration': self.duration if self.duration else int(time.time()) - self.started }
+
+#
+# This is the REST API for the plugin service
+#
+
+def jsonify(data):
+    return json.dumps(data, sort_keys=True, indent=4) + "\n"
+
+@route('/plugins', methods=['GET'])
+def get_plugins(request):
+    return jsonify({ 'success': True, 'plugins': PLUGINS.keys() })
+
+@route('/sessions', methods=['GET'])
+def get_sessions(request):
+    sessions = [{'id':session.id, 'state':session.state} for session in SESSIONS.values()]
+    return jsonify({ 'success': True, 'sessions': sessions })
+
+@route('/session/create/<string:plugin_name>', methods=['PUT'])
+def create_session(request, plugin_name):
+    plugin_class = PLUGINS.get(plugin_name)
+    if not plugin_class:
+        return jsonify({'success': False, 'error': 'no-such-plugin'})
+    configuration = json.loads(request.content.getvalue())
+    session = PluginSession(plugin_name, plugin_class, configuration)
+    SESSIONS[session.id] = session
+    return jsonify({'success': True, 'session': session.summary()})
+
+@route('/session/<string:session_id>', methods=['GET'])
+def get_session(request, session_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    else:
+        return jsonify({'success': True, 'session': session.summary()})
+
+@route('/session/<string:session_id>/state', methods=['PUT'])
+def set_session_state(request, session_id):
+    state = request.content.getvalue()
+    if state not in ('START', 'STOP', 'TERMINATE'):
+        return jsonify({'success': False, 'error': 'unknown-state'})
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    if state == 'START':
+        if session.state != 'CREATED':
+            return jsonify({'success': False, 'error': 'unknown-state-transition'})
+        session.start()
+    elif state == 'STOP':
+        if session.state != 'STARTED':
+            return jsonify({'success': False, 'error': 'unknown-state-transition'})
+        session.stop()
+    elif state == 'TERMINATE':
+        if session.state != 'STARTED':
+            return jsonify({'success': False, 'error': 'unknown-state-transition'})
+        session.terminate()
+    return jsonify({'success': True})
+
+@route('/session/<string:session_id>/results', methods=['GET'])
+def get_session_results(request, session_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    return jsonify({'success': True,
+                    'session': session.summary(),
+                    'issues': session.results})
+
+#
+# This is the REST API that the plugin-runners talk to. These methods only
+# accept connections coming from localhost and need to be authenticated
+# through the plugin session id.
+#
+
+@route('/session/<string:session_id>/configuration', methods=['GET'])
+def get_configuration(request, session_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    return jsonify(session.configuration)
+
+@route('/session/<string:session>/report/progress', methods=['POST'])
+def report_progress(request, session_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    body = request.content.getvalue()
+    logging.debug("Received progress from plugin session %s: " + body)
+    return "{}"
+
+@route('/session/<string:session_id>/report/results', methods=['POST'])
+def report_results(request, session_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    results = json.load(request.content)
+    logging.debug("Received results from plugin session %s: %s" % (session,str(results)))
+    session.results += results
+    return "{}"
+
+@route('/session/<string:session_id>/report/errors', methods=['POST'])
+def report_errors(request, session_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    body = request.content.getvalue()
+    logging.debug("Received errors from plugin session %s: %s" % (session,body))
+    return "{}"
+
+@route('/session/<string:session_id>/report/finish', methods=['POST'])
+def report_finish(request, session_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    body = request.content.getvalue()
+    logging.debug("Received finish from plugin session %s: %s" % (session,body))
+    return "{}"
+
+if __name__ == "__main__":
+
+    parser = optparse.OptionParser()
+    parser.add_option("--debug", action="store_true")
+    parser.add_option("--address", default="127.0.0.1")
+    parser.add_option("--port", default=8181, type="int")
+    
+    (options, args) = parser.parse_args()
+
+    level = logging.DEBUG if options.debug else logging.INFO
+    logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
+    logging.info("Starting plugin-service on %s:%d" % (options.address,options.port));
+
+    # This should be done with discovery or a configuration file instead
+
+    from minion.plugins.basic import DummyPlugin
+    from minion.plugins.basic import AbortedPlugin
+    from minion.plugins.basic import FailedPlugin
+    from minion.plugins.basic import ExceptionPlugin
+    from minion.plugins.basic import HSTSPlugin
+    from minion.plugins.basic import LongRunningPlugin
+    from minion.plugins.basic import XFrameOptionsPlugin
+    
+    PLUGINS["minion.plugins.basic.DummyPlugin"] = DummyPlugin
+    PLUGINS["minion.plugins.basic.AbortedPlugin"] = AbortedPlugin
+    PLUGINS["minion.plugins.basic.FailedPlugin"] = FailedPlugin
+    PLUGINS["minion.plugins.basic.ExceptionPlugin"] = ExceptionPlugin
+    PLUGINS["minion.plugins.basic.HSTSPlugin"] = HSTSPlugin
+    PLUGINS["minion.plugins.basic.LongRunningPlugin"] = LongRunningPlugin
+    PLUGINS["minion.plugins.basic.XFrameOptionsPlugin"] = XFrameOptionsPlugin
+
+    try:
+        from minion.plugins.nmap import NMAPPlugin
+        PLUGINS["minion.plugins.nmap.NMAPPlugin"] = NMAPPlugin
+    except:
+        pass
+
+    try:
+        from minion.plugins.garmr import GarmrPlugin
+        PLUGINS["minion.plugins.garmr.GarmrPlugin"] = GarmrPlugin
+    except:
+        pass
+
+    try:
+        from minion.plugins.zap import ZAPPlugin
+        PLUGINS["minion.plugins.zap.ZAPPlugin"] = ZAPPlugin
+    except:
+        pass
+
+    for plugin_name in sorted(PLUGINS.keys()):
+        logging.info("Registered plugin " + plugin_name)
+
+    run(options.address, options.port)

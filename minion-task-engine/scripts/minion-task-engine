@@ -1,0 +1,252 @@
+#!/usr/bin/env python
+
+
+import json
+import logging
+import optparse
+import sys
+import uuid
+
+import klein
+import zope.interface
+
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred
+from twisted.internet.defer import DeferredList
+from twisted.internet.defer import DeferredSemaphore
+from twisted.internet.task import deferLater
+from twisted.web.client import Agent
+from twisted.web.http_headers import Headers
+from twisted.web.iweb import IBodyProducer
+from twisted.internet.defer import succeed
+from twisted.web.client import getPage
+
+
+PLANS = {}
+
+PLANS['tickle'] = {
+    'name': 'tickle',
+    'description': 'Run basic tests and do a very basic port scan using NMAP.',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.basic.HSTSPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        },
+        {
+            'plugin_name': 'minion.plugins.basic.XFrameOptionsPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        },
+        {
+            'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
+            'configuration': {
+                'ports': "U:53,111,137,T:21-25,139,8080,8443"
+            }
+        }
+    ]
+}
+
+PLANS['scratch'] = {
+    'name': 'scratch',
+    'description': 'Run Garmr and do a full port scan using NMAP.',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        },
+        {
+            'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        }
+    ]
+}
+
+SCANS = {}
+
+PLUGIN_SERVICE_API = "http://localhost:8181"
+
+
+class Scan:
+
+    def __init__(self, plan, configuration):
+        self.plan = plan
+        self.configuration = configuration
+        self.id = str(uuid.uuid4())
+        self.state = 'CREATED'
+        self.plugin_configurations = []
+        self.semaphore = DeferredSemaphore(1)
+        self.plugin_service_api = PLUGIN_SERVICE_API
+        self.plugin_sessions = []
+
+    def _start_plugin_session_success(self, result):
+        logging.debug(result)
+        # TODO Update the status in the scan
+
+    def _start_plugin_session_failure(self, failure):
+        logging.debug(failure)
+        # TODO Update the status in the scan
+
+    def _create_plugin_session_success(self, result):
+        logging.debug(result)
+        self.plugin_sessions.append(result['session']['id'])
+        # TODO Update the status in the scan
+        d = self.semaphore.run(self._put_async, self.plugin_service_api + "/session/%s/state" % result['session']['id'], 'START')
+        d.addCallback(self._start_plugin_session_success)
+        d.addErrback(self._start_plugin_session_failure)
+
+    def _create_plugin_session_failure(self, failure):
+        logging.debug(failure)
+        # TODO Update the status in the scan
+
+    def start(self):
+        self.state = 'STARTED'
+        # Create plugin sessions for all the plugins in our workflow
+        for step in self.plan['workflow']:
+            configuration = step['configuration']
+            configuration.update(self.configuration)
+            
+            d = self.semaphore.run(self._put_async, self.plugin_service_api + "/session/create/%s" % step['plugin_name'], json.dumps(configuration))
+            d.addCallback(self._create_plugin_session_success)
+            d.addErrback(self._create_plugin_session_failure)
+
+    def stop(self):
+        self.state = 'STOPPED'
+
+    def summary(self):
+        def _merge_plugin_sessions(results):
+            sessions = []
+            done = True
+            for success,result in results:
+                if success:
+                    sessions.append(result['session'])
+            if len(sessions):
+                if len(filter(lambda session: session['state'] in ('FINISHED', 'ABORTED'), sessions)) == len(sessions):
+                    self.state = 'FINISHED'
+            summary = { 'id': self.id, 'state': self.state, 'plan_name': self.plan['name'], 'configuration': self.configuration }
+            summary['sessions'] = sessions
+            return summary
+        d = DeferredList([self._get("%s/session/%s" % (self.plugin_service_api, id)) for id in self.plugin_sessions])
+        d.addCallback(_merge_plugin_sessions)
+        return d
+    
+    def results(self):
+        def _merge_plugin_results(results):
+            plugin_results = []
+            for success,result in results:
+                if success:
+                    print "RESULT", result
+                    plugin_results.append({'session': result['session'], 'issues': result['issues']})
+            return plugin_results
+        d = DeferredList([self._get("%s/session/%s/results" % (self.plugin_service_api, id)) for id in self.plugin_sessions])
+        d.addCallback(_merge_plugin_results)
+        return d
+
+    #
+
+    def _get(self, url):
+        d = getPage(url.encode('ascii'), method='GET')
+        d.addCallback(json.loads)
+        return d
+
+    def _async_get(self, url):
+        return deferLater(reactor, 0, lambda:self._get(url))
+
+    def _post(self, url, data):
+        d = getPage(url.encode('ascii'), method='POST', postdata=data)
+        d.addCallback(json.loads)
+        return d
+
+    def _post_async(self, url, data):
+        d = deferLater(reactor, 0, lambda: self._post(url, data))
+        return d
+
+    def _put(self, url, data):
+        d = getPage(url.encode('ascii'), method='PUT', postdata=data)
+        d.addCallback(json.loads)
+        return d
+
+    def _put_async(self, url, data):
+        d = deferLater(reactor, 0, lambda: self._put(url, data))
+        return d
+
+
+def jsonify(data):
+    return json.dumps(data, sort_keys=True, indent=4) + "\n"
+
+
+@klein.route('/plans', methods=['GET'])
+def get_plans(request):
+    plans = [{'name': plan['name'], 'description': plan['description']} for plan in PLANS.values()]
+    return jsonify({ 'success': True, 'plans': plans })
+
+@klein.route('/plans/<string:plan_name>', methods=['GET'])
+def get_plan(request, plan_name):
+    plan = PLANS.get(plan_name)
+    if plan is None:
+        return jsonify({'success': False, 'error': 'no-such-plan'})
+    return jsonify({ 'success': True, 'plan': PLANS[plan_name] })
+
+
+@klein.route('/scan/create/<string:plan_name>', methods=['PUT'])
+def put_scan(request, plan_name):
+    plan = PLANS.get(plan_name)
+    if plan is None:
+        return jsonify({'success': False, 'error': 'no-such-plan'})
+    configuration = json.loads(request.content.getvalue())
+    scan = Scan(plan, configuration)
+    SCANS[scan.id] = scan
+    return scan.summary().addCallback(lambda summary: jsonify({ 'success': True, 'scan': summary }))
+
+@klein.route('/scan/<string:scan_id>')
+def get_scan(request, scan_id):
+    scan = SCANS.get(scan_id)
+    if scan is None:
+        return jsonify({'success': False, 'error': 'no-such-scan'})
+    return scan.summary().addCallback(lambda summary: jsonify({ 'success': True, 'scan': summary }))
+
+@klein.route('/scan/<string:scan_id>/state', methods=['POST'])
+def post_scan_state(request, scan_id):
+    state = request.content.getvalue()
+    if state not in ('START', 'STOP'):
+        return jsonify({'success': False, 'error': 'unknown-state'})
+    scan = SCANS.get(scan_id)
+    if scan is None:
+        return jsonify({'success': False, 'error': 'no-such-scan'})
+    if state == 'START':
+        if scan.state != 'CREATED':
+            return jsonify({'success': False, 'error': 'unknown-state-transition'})
+        scan.start()
+    elif state == 'STOP':
+        if scan.state != 'STARTED':
+            return jsonify({'success': False, 'error': 'unknown-state-transition'})
+        scan.stop()
+    return jsonify({'success': True})
+
+@klein.route('/scan/<string:scan_id>/results', methods=['GET'])
+def get_scan_results(request, scan_id):
+    scan = SCANS.get(scan_id)
+    if scan is None:
+        return jsonify({'success': False, 'error': 'no-such-scan'})
+    return scan.results().addCallback(lambda results: jsonify({ 'success': True, 'results': results }))
+
+if __name__ == "__main__":
+
+    parser = optparse.OptionParser()
+    parser.add_option("--debug", action="store_true")
+    parser.add_option("--address", default="127.0.0.1")
+    parser.add_option("--port", default=8282, type="int")
+
+    (options, args) = parser.parse_args()
+
+    level = logging.DEBUG if options.debug else logging.INFO
+    logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
+    logging.info("Starting task-engine on %s:%d" % (options.address,options.port));
+
+    klein.run(options.address, options.port)

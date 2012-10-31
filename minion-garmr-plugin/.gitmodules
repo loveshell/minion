@@ -1,0 +1,3 @@
+[submodule "dependencies/garmr"]
+	path = dependencies/garmr
+	url = https://github.com/mozilla/Garmr
