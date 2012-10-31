@@ -4,3 +4,6 @@
 [submodule "dependencies/klein"]
 	path = dependencies/klein
 	url = https://github.com/MostAwesomeDude/klein.git
+[submodule "dependencies/garmr"]
+	path = dependencies/garmr
+	url = https://github.com/mozilla/Garmr.git
