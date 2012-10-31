@@ -12,11 +12,12 @@ Setting up a development environment
 
 If you work on Ubuntu, install the following packages:
 
-    $ sudo apt-get install build-essentials python-virtualenv python-dev mysql-client
+    $ sudo apt-get install git build-essential python-virtualenv python-dev mysql-server libmysqlclient-dev
 
 If you work on Fedora, install the following packages:
 
-    $ sudo yum install ... TODO
+    $ sudo yum groupinstall 'Development Tools'
+    $ sudo yum install python-devel TODO
 
 Grab the code. The --recursive option is important because the project has git submodules that need to be recursively checked out.
 
