@@ -1,3 +1,6 @@
 [submodule "frontend/vendor"]
 	path = frontend/vendor
 	url = git://github.com/mozilla/playdoh-lib.git
+[submodule "dependencies/klein"]
+	path = dependencies/klein
+	url = https://github.com/MostAwesomeDude/klein.git

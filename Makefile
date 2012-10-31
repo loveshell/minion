@@ -1,36 +1,33 @@
 
 VIRTUALENV=virtualenv
-INSTALL=bin/pip install --quiet
+INSTALL=env/bin/pip install --quiet
 
 .PHONY: all build test clean
 
 all: build
 
 setup:
-	$(VIRTUALENV) .
-	$(INSTALL) nose
-	#$(INSTALL) pylint
+	$(VIRTUALENV) env
 
 eggs:
-	(cd plugin_service; ../bin/python setup.py bdist_egg)
-	(cd plugins; ../bin/python setup.py bdist_egg)
-	(cd task_engine; ../bin/python setup.py bdist_egg)
+	(cd minion-plugin-service; ../env/bin/python setup.py bdist_egg)
+	(cd minion-nmap-plugin; ../env/bin/python setup.py bdist_egg)
+	(cd minion-garmr-plugin; ../env/bin/python setup.py bdist_egg)
+	(cd minion-task-engine; ../env/bin/python setup.py bdist_egg)
 
 develop:
-	(cd plugin_service; ../bin/python setup.py develop)
-	(cd plugins; ../bin/python setup.py develop)
-	(cd task_engine; ../bin/python setup.py develop)
+	(cd minion-plugin-service; ../env/bin/python setup.py develop)
+	(cd minion-nmap-plugin; ../env/bin/python setup.py develop)
+	(cd minion-garmr-plugin; ../env/bin/python setup.py develop)
+	(cd minion-task-engine; ../env/bin/python setup.py develop)
 
 test:
-	#(cd plugin_service; ../bin/python setup.py test)
-	#(cd task_engine; ../bin/python setup.py test)
-	(cd plugin_service; ../bin/nosetests --with-xunit minion/plugin_service/tests/*.py)
-	#(cd plugins; ../bin/nosetests --with-xunit minion/plugins/tests/*.py)
-	(cd task_engine; ../bin/nosetests --with-xunit minion/task_engine/tests/*.py)
+	(cd minion-plugin-service; ../env/bin/python setup.py test)
+	(cd minion-nmap-plugin; ../env/bin/python setup.py test)
+	(cd minion-garmr-plugin; ../env/bin/python setup.py test)
+	(cd minion-task-engine; ../env/bin/python setup.py test)
 
 clean:
-	rm -rf bin lib include
-	rm -rf plugin_service/dist plugin_service/build plugin_service/*.egg plugin_service/*.egg-info plugin_service/nosetests.xml
-	rm -rf task_engine/dist task_engine/build task_engine/*.egg task_engine/*.egg-info task_engine/nosetests.xml
-	rm -rf plugins/dist plugins/build plugins/*.egg plugins/*.egg-info plugins/nosetests.xml
+	rm -rf env bin lib include
+	rm -rf minion-*/*.egg minion-*/*.egg-info minion-*/nosetests.xml minion-*/dist minion-*/build
 
