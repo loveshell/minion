@@ -11,6 +11,7 @@ setup:
 	# These are not in PyPi
 	(cd dependencies/klein && ../../env/bin/python setup.py install)
 	(cd dependencies/garmr && ../../env/bin/python setup.py install)
+	(cd frontend && ../env/bin/pip install -r requirements/compiled.txt)
 
 develop:
 	(cd plugin-service; ../env/bin/python setup.py develop)
