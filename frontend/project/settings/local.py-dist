@@ -98,6 +98,6 @@ SITE_URL = "http://127.0.0.1:8000"
 # Set this value to the ip address and port of your task engine. If it is on the same machine as the web, you may use 127.0.0.1
 TASK_ENGINE_URL = "http://127.0.0.1:8282"
 
-# Plugin service IP and Port
+# Plugin service IP and Port 
 # Set this value to the ip address and port of your plugin service. If it is on the same machine as the web, you may use 127.0.0.1
 PLUGIN_SERVICE_URL = "http://127.0.0.1:8181"
