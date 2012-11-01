@@ -117,7 +117,7 @@ You can see detailed information about a specific plan:
 
 You can start a scan against a specific host by PUTting a configuration:
 
-    $ curl -XPUT -d '{"target":"http://moo.mx"}' http://127.0.0.1:8282/scan/create/t
+    $ curl -XPUT -d '{"target":"http://moo.mx"}' http://127.0.0.1:8282/scan/create/tickle
     {
         "scan": {
             "configuration": {
