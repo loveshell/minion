@@ -140,7 +140,7 @@ You start the scan by POSTing `START` to it's status:
 
 You can find the status of the scan by GETting it:
 
-$ curl -XGET http://127.0.0.1:8282/scan/3c0883e2-c22f-47a8-932a-958a7846c2ad
+    $ curl -XGET http://127.0.0.1:8282/scan/3c0883e2-c22f-47a8-932a-958a7846c2ad
     {
         "scan": {
             "configuration": {
