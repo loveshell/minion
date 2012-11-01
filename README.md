@@ -3,12 +3,20 @@ Minion
 
 Minion is a security testing framework built by Mozilla to brdige the gap between developers and security testers. To do so, it enables developers to scan their projects using a friendly interface.
 
-Full [documentation][docs] is available as well.
+For more information see https://wiki.mozilla.org/Security/Projects/Minion
+
+Full [documentation][docs] will be available in time.
 
 [docs]: http://rtfd.org/
 
 Setting up a development environment
 ------------------------------------
+Whatever platform you use, you will need the following tools:
+
+    pip
+    virtualenv
+    git
+    mysql
 
 If you work on Ubuntu, install the following packages:
 
@@ -17,7 +25,7 @@ If you work on Ubuntu, install the following packages:
 If you work on Fedora, install the following packages:
 
     $ sudo yum groupinstall 'Development Tools'
-    $ sudo yum install python-devel TODO
+    $ sudo yum install python-devel mysql-devel
 
 Grab the code. The --recursive option is important because the project has git submodules that need to be recursively checked out.
 
