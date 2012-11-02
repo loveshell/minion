@@ -15,6 +15,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import DeferredSemaphore
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import deferLater
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
@@ -72,6 +73,7 @@ PLANS['scratch'] = {
 SCANS = {}
 
 PLUGIN_SERVICE_API = "http://localhost:8181"
+PLUGIN_SERVICE_POLL_INTERVAL = 1.0
 
 
 class Scan:
@@ -86,96 +88,105 @@ class Scan:
         self.plugin_service_api = PLUGIN_SERVICE_API
         self.plugin_sessions = []
 
-    def _start_plugin_session_success(self, result):
-        logging.debug(result)
-        # TODO Update the status in the scan
+    #
+    # Return True if all plugins have completed.
+    #
 
-    def _start_plugin_session_failure(self, failure):
-        logging.debug(failure)
-        # TODO Update the status in the scan
+    def _all_sessions_are_done(self):
+        for session in self.plugin_sessions:
+            if session['state'] in ('CREATED', 'STARTED'):
+                return False
+        return True
+    
+    #
+    # Periodically decide what to do in our workflow. We simply walk
+    # over all the plugin sessions part of this scan and see what
+    # needs to happen based on their status.
+    #
 
-    def _create_plugin_session_success(self, result):
-        logging.debug(result)
-        self.plugin_sessions.append(result['session']['id'])
-        # TODO Update the status in the scan
-        d = self.semaphore.run(self._put_async, self.plugin_service_api + "/session/%s/state" % result['session']['id'], 'START')
-        d.addCallback(self._start_plugin_session_success)
-        d.addErrback(self._start_plugin_session_failure)
-
-    def _create_plugin_session_failure(self, failure):
-        logging.debug(failure)
-        # TODO Update the status in the scan
+    @inlineCallbacks
+    def _periodic_session_task(self):
+        logging.debug("Scan._periodic_session_task")
+        # Loop over all sessions and figure out what to do next for them. We do only one thing
+        # at a time to minimize calls down to the plugin service.
+        for session in self.plugin_sessions:            
+            # Update the session so that we have the most recent info
+            if session['state'] not in ('FINISHED', 'ABORTED', 'TERMINATED'):
+                url = "%s/session/%s" % (self.plugin_service_api, session['id'])
+                response = yield getPage(url.encode('ascii')).addCallback(json.loads)
+                session.update(response['session'])
+            # Now decide what to do based on the session state
+            if session['state'] == 'CREATED':
+                # Start this plugin session
+                logging.debug("Scan._periodic_session_task - Going to start " + session['plugin_name'])
+                url = self.plugin_service_api + "/session/%s/state" % session['id']
+                result = yield getPage(url.encode('ascii'), method='PUT', postdata='START').addCallback(json.loads)
+                break
+            elif session['state'] in ('STARTED', 'FINISHED') and session.get('_done') != True:
+                # If the status is STARTED or FINISHED then collect the results periodically
+                logging.debug("Scan._periodic_session_task - Going to get results from " + session['plugin_name'])
+                url = self.plugin_service_api + "/session/%s/results" % session['id']
+                result = yield getPage(url.encode('ascii')).addCallback(json.loads)
+                session['results'] = result['issues']
+                # If the task is finished, and we just grabbed the final results, then mark it as done
+                if session['state'] == 'FINISHED':
+                    session['_done'] = True                    
+                break
+        # If we have more work to do then we schedule ourself again.
+        if not self._all_sessions_are_done():
+            yield deferLater(reactor, PLUGIN_SERVICE_POLL_INTERVAL, self._periodic_session_task)        
+        else:
+            self.state = 'FINISHED'
+    
+    #
+    # Start the scan. We change the status to STARTED and call our periodic
+    # poller which will be responsible for starting the plugins in the right
+    # order and determining wether are done executing.
+    #
 
     def start(self):
         self.state = 'STARTED'
-        # Create plugin sessions for all the plugins in our workflow
+        reactor.callLater(PLUGIN_SERVICE_POLL_INTERVAL, self._periodic_session_task)
+
+    #
+    # Create a new scan.
+    #
+    
+    @inlineCallbacks
+    def create(self):
+        # Create plugin sessions
         for step in self.plan['workflow']:
+            # Create the plugin configuration by overlaying the default configuration with the given configuration
             configuration = step['configuration']
             configuration.update(self.configuration)
-            
-            d = self.semaphore.run(self._put_async, self.plugin_service_api + "/session/create/%s" % step['plugin_name'], json.dumps(configuration))
-            d.addCallback(self._create_plugin_session_success)
-            d.addErrback(self._create_plugin_session_failure)
+            # Create the pligin session
+            url = self.plugin_service_api + "/session/create/%s" % step['plugin_name']
+            response = yield getPage(url.encode('ascii'), method='PUT', postdata=json.dumps(configuration)).addCallback(json.loads)
+            self.plugin_sessions.append(response['session'])
+        summary = { 'id': self.id, 'state': self.state, 'plan': self.plan, 'configuration': self.configuration,
+                    'sessions': self.plugin_sessions }
+        returnValue(summary)
+
+    #
+    # Stop the current scan
+    # TODO Kill periodic tasks, etc.
+    #
 
     def stop(self):
         self.state = 'STOPPED'
 
-    def summary(self):
-        def _merge_plugin_sessions(results):
-            sessions = []
-            done = True
-            for success,result in results:
-                if success:
-                    sessions.append(result['session'])
-            if len(sessions):
-                if len(filter(lambda session: session['state'] in ('FINISHED', 'ABORTED'), sessions)) == len(sessions):
-                    self.state = 'FINISHED'
-            summary = { 'id': self.id, 'state': self.state, 'plan_name': self.plan['name'], 'configuration': self.configuration }
-            summary['sessions'] = sessions
-            return summary
-        d = DeferredList([self._get("%s/session/%s" % (self.plugin_service_api, id)) for id in self.plugin_sessions])
-        d.addCallback(_merge_plugin_sessions)
-        return d
-    
-    def results(self):
-        def _merge_plugin_results(results):
-            plugin_results = []
-            for success,result in results:
-                if success:
-                    print "RESULT", result
-                    plugin_results.append({'session': result['session'], 'issues': result['issues']})
-            return plugin_results
-        d = DeferredList([self._get("%s/session/%s/results" % (self.plugin_service_api, id)) for id in self.plugin_sessions])
-        d.addCallback(_merge_plugin_results)
-        return d
-
     #
-
-    def _get(self, url):
-        d = getPage(url.encode('ascii'), method='GET')
-        d.addCallback(json.loads)
-        return d
-
-    def _async_get(self, url):
-        return deferLater(reactor, 0, lambda:self._get(url))
-
-    def _post(self, url, data):
-        d = getPage(url.encode('ascii'), method='POST', postdata=data)
-        d.addCallback(json.loads)
-        return d
-
-    def _post_async(self, url, data):
-        d = deferLater(reactor, 0, lambda: self._post(url, data))
-        return d
-
-    def _put(self, url, data):
-        d = getPage(url.encode('ascii'), method='PUT', postdata=data)
-        d.addCallback(json.loads)
-        return d
-
-    def _put_async(self, url, data):
-        d = deferLater(reactor, 0, lambda: self._put(url, data))
-        return d
+    # Return a summary of the current plugin. Contains its state,
+    # plan, configuration and sessions (including results). So it
+    # really is not a summary :-/
+    #
+    
+    def summary(self):
+        return { 'id': self.id,
+                 'state': self.state,
+                 'plan': self.plan,
+                 'configuration': self.configuration,
+                 'sessions': self.plugin_sessions }
 
 
 def jsonify(data):
@@ -194,7 +205,6 @@ def get_plan(request, plan_name):
         return jsonify({'success': False, 'error': 'no-such-plan'})
     return jsonify({ 'success': True, 'plan': PLANS[plan_name] })
 
-
 @klein.route('/scan/create/<string:plan_name>', methods=['PUT'])
 def put_scan(request, plan_name):
     plan = PLANS.get(plan_name)
@@ -204,14 +214,14 @@ def put_scan(request, plan_name):
     configuration = json.loads(request.content.getvalue())
     scan = Scan(plan, configuration)
     SCANS[scan.id] = scan
-    return scan.summary().addCallback(lambda summary: jsonify({ 'success': True, 'scan': summary }))
+    return scan.create().addCallback(lambda summary: jsonify({ 'success': True, 'scan': summary }))
 
 @klein.route('/scan/<string:scan_id>')
 def get_scan(request, scan_id):
     scan = SCANS.get(scan_id)
     if scan is None:
         return jsonify({'success': False, 'error': 'no-such-scan'})
-    return scan.summary().addCallback(lambda summary: jsonify({ 'success': True, 'scan': summary }))
+    return jsonify({ 'success': True, 'scan': scan.summary() })
 
 @klein.route('/scan/<string:scan_id>/state', methods=['POST'])
 def post_scan_state(request, scan_id):
@@ -236,7 +246,7 @@ def get_scan_results(request, scan_id):
     scan = SCANS.get(scan_id)
     if scan is None:
         return jsonify({'success': False, 'error': 'no-such-scan'})
-    return scan.results().addCallback(lambda results: jsonify({ 'success': True, 'results': results }))
+    return jsonify({ 'success': True, 'scan': scan.summary() })
 
 if __name__ == "__main__":
 
