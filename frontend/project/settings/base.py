@@ -4,7 +4,7 @@
 from funfactory.settings_base import *
 import sys
 sys.path.append("/home/minion/minion/plugins/")
-sys.path.append("/home/minion/minion/task_engine/")
+sys.path.append("/home/minion/minion/task-engine/")
 
 # Name of the top-level module where you put all your apps.
 # If you did not install Playdoh with the funfactory installer script
