@@ -11,6 +11,13 @@
         
         
         <h2>Live Results</h2>
+        <div id="results_area">
+            {% for session in first_results %}
+                <div id="{{session.plugin_name}}" class="plugin_result">
+                    
+                </div>
+            {% endfor %}
+        </div>
         <textarea id="updating_results">
             
         </textarea>
@@ -21,7 +28,12 @@
                     "scan_id":"{{scan_id}}"
                 },
                 function(data) {
-                    $("#updating_results").val($("#updating_results").val() + "\n" + data);
+                    var json_data = jQuery.parseJSON(data);
+                    
+                    $.each(json_data.scan.sessions, function(i, session) {
+                        
+                        $("#updating_results").val($("#updating_results").val() + "\n" + session.plugin_name);
+                    });
                 });
             }, 5000);
         </script>

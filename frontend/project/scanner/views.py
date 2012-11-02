@@ -32,7 +32,7 @@ def newscan(request, template=None):
     resp_json = r.json
     #Page has been POSTed to
     if request.method == 'POST':
-        if request.POST["new_scan_url_input"] and request.POST["plan_selection"]:
+        if request.POST["new_scan_url_input"] and request.POST["plan_selection"] in r.text:
             url_entered = request.POST["new_scan_url_input"]        #Needs sanitization??
             plan_selected = request.POST["plan_selection"]
             time_started = time.asctime(time.localtime(time.time()))
@@ -40,40 +40,36 @@ def newscan(request, template=None):
             #Task Engine work
             #Start the scan using provided url to PUT to the API endpoint
             payload = json.dumps({"target": url_entered})
-            r = requests.put(settings.TASK_ENGINE_URL + "/scan/create/" + plan_selected, data=payload)
+            put = requests.put(settings.TASK_ENGINE_URL + "/scan/create/" + plan_selected, data=payload)
             #Decode the response and extract the ID
-            json_r = r.json
-            scan_id = json_r['scan']['id']
+            put_resp = put.json
+            scan_id = put_resp['scan']['id']
             
             #Post START to the API endpoint to begin the scan
             starter = requests.post(settings.TASK_ENGINE_URL + "/scan/" + scan_id + "/state", data="START")
             log.debug("STARTER " + str(starter))
             
-            data = {"url_entered":url_entered, "plan_selected":plan_selected, "scan_id":scan_id, "time_started":time_started, "task_engine_url":settings.TASK_ENGINE_URL}
+            #Retrieve the first set of responses to construct progress bars
+            first_results = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
+            first_results_json = first_results.json
+            
+            data = {"url_entered":url_entered, "plan_selected":plan_selected, "scan_id":scan_id, "time_started":time_started, "first_results":first_results_json['scan']['sessions'], "task_engine_url":settings.TASK_ENGINE_URL}
             
             log.debug("data " + str(data))
     
             return render(request, template, data)
         else:
-            #Retrieve list of plans
-            r = requests.get(settings.TASK_ENGINE_URL + '/plans')
-            resp_json = r.json
-            
             data = {"resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
             return render(request, template, data)
     #Page has not been POSTed to
     else:
-        #Retrieve list of plans
-        r = requests.get(settings.TASK_ENGINE_URL + '/plans')
-        resp_json = r.json
-        
         data = {"resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
         return render(request, template, data)
 
 @csrf_exempt
 def xhr_scan_status(request):
     if request.is_ajax():
-        message = "x"
+        message = "Invalid GET Request. Must POST with ID."
         if request.method == 'POST':
             #log.debug("\n\nAJAX_POST_RECEIVED " + str(request.POST))
             scan_id = request.POST["scan_id"]
