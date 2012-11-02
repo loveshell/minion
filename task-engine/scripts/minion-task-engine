@@ -259,7 +259,14 @@ def get_scan_results(request, scan_id):
     scan = SCANS.get(scan_id)
     if scan is None:
         return jsonify({'success': False, 'error': 'no-such-scan'})
-    return jsonify({ 'success': True, 'scan': scan.summary() })
+    # Transform this into something that the fontend expects
+    # TODO Clean this up
+    summary = scan.summary()
+    results = []
+    for session in summary['sessions']:
+        results.append({'session': session, 'issues': session.get('results', [])})
+        if 'results' in session:  del session['results']
+    return jsonify({ 'success': True, 'results': results })
 
 if __name__ == "__main__":
 
