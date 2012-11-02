@@ -13,7 +13,7 @@ Setting up a development environment
 ------------------------------------
 Whatever platform you use, you will need the following tools:
 
-    pip
+    Python
     virtualenv
     git
     mysql

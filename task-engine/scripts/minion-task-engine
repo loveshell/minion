@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import copy
 import json
 import logging
 import optparse
@@ -199,6 +200,7 @@ def put_scan(request, plan_name):
     plan = PLANS.get(plan_name)
     if plan is None:
         return jsonify({'success': False, 'error': 'no-such-plan'})
+    plan = copy.deepcopy(plan)
     configuration = json.loads(request.content.getvalue())
     scan = Scan(plan, configuration)
     SCANS[scan.id] = scan

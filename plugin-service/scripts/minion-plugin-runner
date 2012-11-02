@@ -62,9 +62,7 @@ class SimpleCallbacks:
 
     def configuration(self):
         logging.debug("SimpleCallbacks.configuration: " + str(self.session_configuration))
-        deferred = Deferred()
-        reactor.callLater(0, deferred.callback, self.session_configuration)
-        return deferred
+        return deferLater(reactor, 0, lambda: self.session_configuration)
 
 class StringProducer(object):
 

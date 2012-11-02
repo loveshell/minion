@@ -4,15 +4,10 @@
     <h1>New Scan</h1>
     {% if url_entered %}
         <h2>Details</h2>
-        <p>Now scanning: {{url_entered}}...</p>
-        
-        <p>Response: {{plugins}}</p>
-        
-        <p>Safechecks: {{safechecks}}</p>
-        <p>Template: {{template}}</p>
-        
-        <p>Session: {{session}}</p>
-        <p>Service Name: {{plugin_service["name"]}}</p>
+        <p>Now scanning: {{url_entered}}...
+        <br/>Plan Selected: {{plan_selected}}
+        <br/>Scan ID: {{scan_id}}
+        <br/>Time Started: {{time_started}}</p>
         
         
         <h2>Live Results</h2>
@@ -23,9 +18,7 @@
         <script type="text/javascript">
             setInterval(function() {
                 $.post("/en-US/xhr_scan_status/", {
-                    service_name: "{{plugin_service['name']}}",
-                    session: "{{session}}",
-                    csrfmiddlewaretoken: "{{ csrf_token }}"
+                    "scan_id":"{{scan_id}}"
                 },
                 function(data) {
                     $("#updating_results").val($("#updating_results").val() + "\n" + data);
@@ -36,7 +29,14 @@
     {% else %}
         <form method="POST" action="">
             <div id="new_scan_enter_url">
-                <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/><br/>
+                <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/>
+                <select name="plan_selection" id="plan_dropdown">
+                    <option>Select a plan...</option>
+                    {% for plan in resp %}
+                        <option id="{{ plan.name }}">{{ plan.name }}</option>
+                    {% endfor %}
+                </select>
+                <br/>
                 <input type="submit" value="Start Scan" />
             </div>
             <div id="new_scan_advanced_options">

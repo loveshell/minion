@@ -7,7 +7,7 @@ body {
     font-family: "Open Sans","Helvetica Neue",Arial,sans-serif;
 }
 h1 {
-    margin: 5px 0 0 5px;
+    margin: 5px 0 0 0;
 }
 p {
     font-weight: 300;
@@ -142,6 +142,10 @@ a:visited { color: #2D87CA; text-decoration: none; }
     width: 80%;
     font-size: 20px;
     border: 1px solid #BDC2C5;
+}
+
+#plan_dropdown {
+    
 }
 
 #new_scan_advanced_options_expander {
