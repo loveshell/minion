@@ -69,6 +69,19 @@ PLANS['scratch'] = {
     ]
 }
 
+PLANS['zap'] = {
+    'name': 'zap',
+    'description': 'Run ZAP spider and active scanner.',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        }
+    ]
+}
+
 SCANS = {}
 
 PLUGIN_SERVICE_API = "http://localhost:8181"
