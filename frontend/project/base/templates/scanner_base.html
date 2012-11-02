@@ -29,10 +29,11 @@
         <a class="brand" href="/">{{ _('minion') }}</a>
         <div class="nav-collapse">
           <ul class="nav">
-            <li class="active"><a href="/">Home</a></li>
-            <li><a href="/new">New Scan</a></li>
-            <li><a href="#">My Scans</a></li>
-            <li><a href="#">Plans</a></li>
+            {% if request.user.is_active %}
+              {% block menu %}
+              
+              {% endblock %}
+            {% endif %}
           </ul>
           <ul class="nav pull-right">
             

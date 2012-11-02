@@ -1,8 +1,31 @@
 {% extends "scanner_base.html" %}
 
+{% block menu %}
+    <li><a href="/">Home</a></li>
+    <li class="active"><a href="/new">New Scan</a></li>
+    <li><a href="#">My Scans</a></li>
+    <li><a href="#">Plans</a></li>
+{% endblock %}
+
 {% block content %}
     <h1>New Scan</h1>
     {% if url_entered %}
+        <h2>Overview</h2>
+        <div id="errors_warnings">
+            <div id="high_risk" class="alert alert-error alert-block">
+                <span class="warning_text">0</span><br/>
+                High Risk
+            </div>
+            <div id="medium_risk" class="alert alert-block">
+                <span class="warning_text">0</span><br/>
+                Medium Risk
+            </div>
+            <div id="low_risk" class="alert alert-info alert-block">
+                <span class="warning_text">0</span><br/>
+                Low Risk
+            </div>
+        </div>
+        <br style="clear: both;"/>
         <h2>Details</h2>
         <p>Now scanning: {{url_entered}}...
         <br/>Plan Selected: {{plan_selected}}
@@ -10,14 +33,19 @@
         <br/>Time Started: {{time_started}}</p>
         
         
-        <h2>Live Results</h2>
+        <h2>Plugin Status</h2>
         <div id="results_area">
             {% for session in first_results %}
-                <div id="{{session.plugin_name}}" class="plugin_result">
-                    
+                <div class="plugin_result">
+                    {{session.plugin_name}}
+                    <div class="progress progress-info progress-striped">
+                        <div id="{{session.id}}" class="bar" style="width: 0%;"></div>
+                    </div>
                 </div>
             {% endfor %}
         </div>
+        
+        <h2>Live Results</h2>
         <textarea id="updating_results">
             
         </textarea>
@@ -30,9 +58,12 @@
                 function(data) {
                     var json_data = jQuery.parseJSON(data);
                     
-                    $.each(json_data.scan.sessions, function(i, session) {
-                        
-                        $("#updating_results").val($("#updating_results").val() + "\n" + session.plugin_name);
+                    $.each(json_data.results, function(i, result) {
+                        $("#updating_results").val($("#updating_results").val() + "\n" + JSON.stringify(result['issues']));
+                        //Update progress bars
+                        var div_id = result['session']['id'];
+                        var progress = result['session']['duration'] + "%";
+                        $("#" + div_id).css("width", progress);
                     });
                 });
             }, 5000);

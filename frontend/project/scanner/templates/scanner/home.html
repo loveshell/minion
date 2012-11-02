@@ -1,5 +1,12 @@
 {% extends "scanner_base.html" %}
 
+{% block menu %}
+    <li class="active"><a href="/">Home</a></li>
+    <li><a href="/new">New Scan</a></li>
+    <li><a href="#">My Scans</a></li>
+    <li><a href="#">Plans</a></li>
+{% endblock %}
+
 {% block content %}
     <h1>Welcome</h1>
     <p>The scanner is designed to bridge the gap between developers and security by allowing project development teams to scan their applications while they
