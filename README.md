@@ -39,6 +39,8 @@ Using the Makefile you can setup the virtualenv and setup the code for developme
 To setup the frontend you need to copy the template `local.py-dist` to `local.py`:
 
     $ cp frontend/project/settings/local.py-dist frontend/project/settings/local.py
+    
+Next, edit the local.py settings file to include the IP address of your machine for SITE_URL. If you are running the task-engine or plugin-service on a different port or machine, you will need to edit those settings as well.
 
 Minion requires a MySQL database. By default it uses minion as the database, username and password and expects the database to be running on localhost. You can change these settings in projects/settings/local.py.
 
@@ -100,7 +102,7 @@ Start the frontend in a new shell window:
     $ source env/bin/activate
     (env) $ cd frontend
     (env) $ python manage.py syncdb
-    (env) $ python manage.py runserver 127.0.0.0:8000
+    (env) $ python manage.py runserver 127.0.0.1:8000
     Validating models...
 
     0 errors found

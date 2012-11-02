@@ -28,30 +28,40 @@ def home(request, template=None):
 
 @mobile_template('scanner/{mobile/}newscan.html')
 def newscan(request, template=None):
-    #Page has been POSTED to
+    r = requests.get(settings.TASK_ENGINE_URL + '/plans')
+    resp_json = r.json
+    #Page has been POSTed to
     if request.method == 'POST':
-        url_entered = request.POST["new_scan_url_input"]        #Needs sanitization??
-        plan_selected = request.POST["plan_selection"]
-        time_started = time.asctime(time.localtime(time.time()))
-        
-        #Task Engine work
-        #Start the scan using provided url to PUT to the API endpoint
-        payload = json.dumps({"target": url_entered})
-        r = requests.put(settings.TASK_ENGINE_URL + "/scan/create/" + plan_selected, data=payload)
-        #Decode the response and extract the ID
-        json_r = r.json
-        scan_id = json_r['scan']['id']
-        
-        #Post START to the API endpoint to begin the scan
-        starter = requests.post(settings.TASK_ENGINE_URL + "/scan/" + scan_id + "/state", data="START")
-        log.debug("STARTER " + str(starter))
-        
-        data = {"url_entered":url_entered, "plan_selected":plan_selected, "scan_id":scan_id, "time_started":time_started, "task_engine_url":settings.TASK_ENGINE_URL}
-        
-        log.debug("data " + str(data))
-
-        return render(request, template, data)
-    #Page has not been posted to
+        if request.POST["new_scan_url_input"] and request.POST["plan_selection"]:
+            url_entered = request.POST["new_scan_url_input"]        #Needs sanitization??
+            plan_selected = request.POST["plan_selection"]
+            time_started = time.asctime(time.localtime(time.time()))
+            
+            #Task Engine work
+            #Start the scan using provided url to PUT to the API endpoint
+            payload = json.dumps({"target": url_entered})
+            r = requests.put(settings.TASK_ENGINE_URL + "/scan/create/" + plan_selected, data=payload)
+            #Decode the response and extract the ID
+            json_r = r.json
+            scan_id = json_r['scan']['id']
+            
+            #Post START to the API endpoint to begin the scan
+            starter = requests.post(settings.TASK_ENGINE_URL + "/scan/" + scan_id + "/state", data="START")
+            log.debug("STARTER " + str(starter))
+            
+            data = {"url_entered":url_entered, "plan_selected":plan_selected, "scan_id":scan_id, "time_started":time_started, "task_engine_url":settings.TASK_ENGINE_URL}
+            
+            log.debug("data " + str(data))
+    
+            return render(request, template, data)
+        else:
+            #Retrieve list of plans
+            r = requests.get(settings.TASK_ENGINE_URL + '/plans')
+            resp_json = r.json
+            
+            data = {"resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
+            return render(request, template, data)
+    #Page has not been POSTed to
     else:
         #Retrieve list of plans
         r = requests.get(settings.TASK_ENGINE_URL + '/plans')
