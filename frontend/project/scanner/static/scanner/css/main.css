@@ -4,18 +4,7 @@ body {
     font-family: sans-serif;
     /*background-image: url('../img/grain_dark.png');*/
     background-repeat: repeat;
-    font-family: "Open Sans","Helvetica Neue",Arial,sans-serif;
-}
-h1 {
-    margin: 0 0 0 0;
-    font-family: sans-serif;
-    font-weight: 400;
-}
-p {
-    font-weight: 300;
-}
-li {
-    margin-left: 30px;
+    
 }
 
 /* Main link styles */
@@ -23,12 +12,6 @@ a:link { color: #2D87CA; text-decoration: none; }
 a:active { }
 a:hover { }
 a:visited { color: #2D87CA; text-decoration: none; }
-
-/* Header bar link styles */
-#header_bar a:link { color: white; text-decoration: none; }
-#header_bar a:active { }
-#header_bar a:hover { }
-#header_bar a:visited { color: white; text-decoration: none; }
 
 
 /* MAIN PAGE CONTENT - Styles that affect all templates go here */
@@ -40,42 +23,6 @@ a:visited { color: #2D87CA; text-decoration: none; }
 
 #main_page {
     
-}
-
-/* Top red bar which is full width */
-#header_bar {
-    /*background-image: url('../img/grain_red.png');*/
-    background-color: #2D2C2C;
-    background-repeat: repeat;
-    height: 80px;
-}
-
-/* Places a box around the site logo and its text */
-#logo_and_text {
-    float: left;
-    font-size: 2.2em;
-    font-weight: 300;
-    margin-top: 15px;
-}
-
-/* The browserID login button on the right */
-#login_button {
-    float: right;
-    margin-top: 25px;
-}
-
-/* Text that says "Welcome, user@domain.com | Logout" */
-#welcome_user {
-    float: right;
-    color: white;
-    margin-top: 26px;
-    font-family: "Open Sans","Helvetica Neue",Arial,sans-serif;
-    font-weight: 300;
-}
-
-/* The bar directly under the header bar used for breadcrumbs and other info */
-#small_under_bar {
-    height: 35px;
 }
 
 /* The box that appears to float above darker background with lighter background itself */
@@ -95,42 +42,8 @@ a:visited { color: #2D87CA; text-decoration: none; }
     margin-bottom: 20px;
 }
 
-/* MENU */
-#menu {
-    float: left;
-    
-}
-
-#menu ul {
-    list-style: none;
-    width: 200px;
-    padding: 0px;
-    margin: 0px;
-    border: 1px solid #D3D3D3;
-}
-
-#menu li {
-    height: 45px;
-    background-image: url('../img/menu_back.png');
-    border-top: 1px solid #D3D3D3;
-    margin: 0px;
-    padding: 0px;
-    padding-left: 10px;
-    padding-top: 10px;
-    font-weight: 300;
-    font-size: .9em;
-}
-
-#menu li:hover {
-    background-image: url('../img/menu_hover.png');
-}
-
-/* MAIN CONTENT */
-#main_content {
-    float: left;
-    margin-left: 10px;
-    max-width: 785px;
-    width: 100%;
+#browserid_form_hider {
+    display: none;
 }
 
 /* NEW SCAN PAGE CONTENT */
@@ -141,14 +54,15 @@ a:visited { color: #2D87CA; text-decoration: none; }
 }
 
 #new_scan_url_input {
-    margin-top: 30px;
+    margin-top: 10px;
+    margin-bottom: 10px;
     width: 80%;
     font-size: 20px;
     border: 1px solid #BDC2C5;
 }
 
 #plan_dropdown {
-    
+    margin-bottom: 10px;
 }
 
 #new_scan_advanced_options_expander {

@@ -8,54 +8,70 @@
       {% compress css %}
       <link href="{{ static('scanner/css/main.css') }}" rel="stylesheet">
       {% endcompress %}
+      <link href="{{ static('bootstrap/css/bootstrap.css') }}" rel="stylesheet">
+      <link href="{{ static('bootstrap/css/bootstrap-responsive.css') }}" rel="stylesheet">
       <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300' rel='stylesheet' type='text/css'>
     {% endblock %}
   </head>
   
   
   <body>
-    <div id="main_page">
-      {% block header %}
-        <div id="header_bar">
-          <div class="center_1000">
-            <div id="logo_and_text">
-              <a href="/">{{ _('minion') }}</a>
-            </div>
+    
+    <div class="navbar">
+      <div class="center_1000">
+    <div class="navbar-inner">
+      <div class="container" style="width: auto;">
+        <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </a>
+        <a class="brand" href="/">{{ _('minion') }}</a>
+        <div class="nav-collapse">
+          <ul class="nav">
+            <li class="active"><a href="/">Home</a></li>
+            <li><a href="/new">New Scan</a></li>
+            <li><a href="#">My Scans</a></li>
+            <li><a href="#">Plans</a></li>
+          </ul>
+          <ul class="nav pull-right">
+            
             {% if request.user.is_active %}
-              <div id="welcome_user">{{ _('Welcome, {username}')|f(username=request.user) }} | 
-              <a href="{{ url('scanner.logout') }}">{{ _('Log out') }}</a></div>
+              <li><a href="#">{{ _('Welcome, {username}')|f(username=request.user) }}</a></li>
+              <li><a href="{{ url('scanner.logout') }}">{{ _('Log out') }}</a></li>
             {% else %}
-              <div id="login_button"><a id="browserid" href="#"><img src="{{ static('scanner/img/sign_in_grey.png') }}"/></a></div>
-              <form method="POST" action="{{ url('browserid_verify') }}">
+              <li>
+                <a id="browserid" href="#">Log In</a>
+                <div id="browserid_form_hider">
+                <form method="POST" action="{{ url('browserid_verify') }}">
                   {{ csrf() }}
                   {{ browserid_form.as_p() }}
               </form>
+                </div>
+              </li>
+              
             {% endif %}
-          </div>
-        </div>
-      {% endblock %}
-      <div id="small_under_bar">
-        <div class="center_1000">
-          {% block under_bar_content %}{% endblock %}
-        </div>
+            
+            <li>
+            
+            </li>
+          </ul>
+        </div><!-- /.nav-collapse -->
       </div>
+    </div><!-- /navbar-inner -->
+    </div>
+  </div><!-- /navbar -->
+    
+    <div id="main_page">
+      
       
       {% if request.user.is_active %}
         {# The user is logged in, display their homepage #}
         <div id="lighter_box">
             <div class="center_1000">
-                <div id="menu">
-                    <ul>
-                        <li><a href="/">Home</a></li>
-                        <li><a href="/new">New Scan</a></li>
-                        <li>My Scans</li>
-                        <li>Configure Plans</li>
-                        <li>My Account</li>
-                    </ul>
-                </div>
-                <div id="main_content">
+                
                   {% block content %}{% endblock %}
-                </div>
+                
                 <br style="clear: both;"/>
             </div>
         </div>
@@ -78,8 +94,15 @@
       </div>
   
       {% block site_js %}
-        {{ js('example_js') }}
-      {% endblock %}
+    {% compress js %}
+    <script src="{{ static('scanner/js/libs/jquery-1.8.2.min.js') }}"></script>
+    <script src="{{ static('scanner/js/libs/jquery.cookie.js') }}"></script>
+    <script src="{{ static('scanner/js/init.js') }}"></script>
+    {% endcompress %}
+    {% if not request.user.is_active %}
+        {{ browserid_form.media }}
+    {% endif %}
+{% endblock %}
     </div>
   </body>
 </html>

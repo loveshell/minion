@@ -39,7 +39,7 @@
         </script>
         
     {% else %}
-        <form method="POST" action="">
+        <form class="form-horizontal well" method="POST" action="">
             <div id="new_scan_enter_url">
                 <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/>
                 <select name="plan_selection" id="plan_dropdown">
@@ -49,7 +49,7 @@
                     {% endfor %}
                 </select>
                 <br/>
-                <input type="submit" value="Start Scan" />
+                <button type="submit" class="btn btn-primary">Start Scan</button>
             </div>
             <div id="new_scan_advanced_options">
                 <div id="new_scan_advanced_options_expander">
