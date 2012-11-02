@@ -60,10 +60,11 @@ class PluginSession:
     collecting from the plugin, etc.
     """
 
-    def __init__(self, plugin_name, plugin_class, configuration):
+    def __init__(self, plugin_name, plugin_class, configuration, debug = False):
         self.plugin_name = plugin_name
         self.plugin_class = plugin_class
         self.configuration = configuration
+        self.debug = debug
         self.id = str(uuid.uuid4())
         self.state = 'CREATED'
         self.started = int(time.time())
@@ -74,7 +75,10 @@ class PluginSession:
     def start(self):
         logging.debug("PluginSession %s %s start()" % (self.id, self.plugin_name))
         protocol = PluginRunnerProcessProtocol(self)
-        arguments = ["minion-plugin-runner", "-p", self.plugin_name]
+        arguments = ["minion-plugin-runner"]
+        if self.debug:
+            arguments += ["-d"]
+        arguments += ["-p", self.plugin_name]
         environment = { 'MINION_PLUGIN_SERVICE_API': 'http://127.0.0.1:8181', 'MINION_PLUGIN_SESSION_ID': self.id, 'PATH': os.getenv('PATH') }
         self.process = reactor.spawnProcess(protocol, "minion-plugin-runner", arguments, environment)
         self.state = 'STARTED'
@@ -115,7 +119,7 @@ def create_session(request, plugin_name):
     if not plugin_class:
         return jsonify({'success': False, 'error': 'no-such-plugin'})
     configuration = json.loads(request.content.getvalue())
-    session = PluginSession(plugin_name, plugin_class, configuration)
+    session = PluginSession(plugin_name, plugin_class, configuration, options.debug)
     SESSIONS[session.id] = session
     return jsonify({'success': True, 'session': session.summary()})
 
