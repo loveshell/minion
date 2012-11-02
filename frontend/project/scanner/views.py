@@ -8,6 +8,13 @@ from session_csrf import anonymous_csrf
 from django.core.context_processors import csrf
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
+import urllib2
+from django.conf import settings
+from django.utils import simplejson
+import json
+from django.core import serializers
+import time
+import requests
 
 #from minion.task_engine.TaskEngineClient import TaskEngineClient
 
@@ -24,9 +31,22 @@ def newscan(request, template=None):
     #Page has been POSTED to
     if request.method == 'POST':
         url_entered = request.POST["new_scan_url_input"]        #Needs sanitization??
-        data = {"url_entered":url_entered}
+        plan_selected = request.POST["plan_selection"]
+        time_started = time.asctime(time.localtime(time.time()))
         
         #Task Engine work
+        #Start the scan using provided url to PUT to the API endpoint
+        payload = json.dumps({"target": url_entered})
+        r = requests.put(settings.TASK_ENGINE_URL + "/scan/create/" + plan_selected, data=payload)
+        #Decode the response and extract the ID
+        json_r = r.json
+        scan_id = json_r['scan']['id']
+        
+        #Post START to the API endpoint to begin the scan
+        starter = requests.post(settings.TASK_ENGINE_URL + "/scan/" + scan_id + "/state", data="START")
+        log.debug("STARTER " + str(starter))
+        
+        data = {"url_entered":url_entered, "plan_selected":plan_selected, "scan_id":scan_id, "time_started":time_started, "task_engine_url":settings.TASK_ENGINE_URL}
         
         log.debug("data " + str(data))
 
@@ -34,19 +54,21 @@ def newscan(request, template=None):
     #Page has not been posted to
     else:
         #Retrieve list of plans
-        r = requests.get('https://api.github.com/user')
+        r = requests.get(settings.TASK_ENGINE_URL + '/plans')
+        resp_json = r.json
         
-        data = {}  # You'd add data here that you're sending to the template.
+        data = {"resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
         return render(request, template, data)
 
+@csrf_exempt
 def xhr_scan_status(request):
     if request.is_ajax():
         message = "x"
         if request.method == 'POST':
             #log.debug("\n\nAJAX_POST_RECEIVED " + str(request.POST))
-            service_name = request.POST["service_name"]
-            session = request.POST["session"]
-            message = "" #te.get_plugin_service_session_status(service_name, session)
+            scan_id = request.POST["scan_id"]
+            scan_status = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
+            message = scan_status.content
     else:
         message = ""
     return HttpResponse(str(message))
