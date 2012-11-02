@@ -61,7 +61,7 @@ if __name__ == "__main__":
         print "\nResults for %s %s:" % (session['id'], session['plugin_name'])
         print "-" * 100
 
-        results = r.json['results']
+        results = r.json['issues']
         if len(results):
             print json.dumps(results, sort_keys=True, indent=4)
         else:
