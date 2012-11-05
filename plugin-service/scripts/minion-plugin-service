@@ -175,7 +175,7 @@ def get_configuration(request, session_id):
         return jsonify({'success': False, 'error': 'no-such-session'})
     return jsonify(session.configuration)
 
-@route('/session/<string:session>/report/progress', methods=['POST'])
+@route('/session/<string:session_id>/report/progress', methods=['POST'])
 def report_progress(request, session_id):
     session = SESSIONS.get(session_id)
     if not session:
