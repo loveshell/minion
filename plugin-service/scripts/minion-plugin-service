@@ -71,6 +71,7 @@ class PluginSession:
         self.duration = None
         self.results = []
         self.errors = []
+        self.progress = None
         
     def start(self):
         logging.debug("PluginSession %s %s start()" % (self.id, self.plugin_name))
@@ -94,6 +95,7 @@ class PluginSession:
                  'state': self.state,
                  'configuration': self.configuration,
                  'plugin_name': self.plugin_name,
+                 'progress': self.progress,
                  'started': self.started,
                  'duration': self.duration if self.duration else int(time.time()) - self.started }
 
@@ -180,8 +182,9 @@ def report_progress(request, session_id):
     session = SESSIONS.get(session_id)
     if not session:
         return jsonify({'success': False, 'error': 'no-such-session'})
-    body = request.content.getvalue()
-    logging.debug("Received progress from plugin session %s: " + body)
+    progress = json.load(request.content)
+    logging.debug("Received progress from plugin session %s: " + str(progress))
+    session.progress = progress
     return "{}"
 
 @route('/session/<string:session_id>/report/results', methods=['POST'])
