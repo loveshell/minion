@@ -14,15 +14,15 @@
         <div id="errors_warnings">
             <span class="risk_boxes">
             <div id="high_risk" class="alert alert-error alert-block">
-                <a href="#high_risk_results"><span class="warning_text">0</span><br/>
+                <a href="#high_risk_results"><span class="warning_text" id="num_high_risk">0</span><br/>
                 High Risk</a>
             </div>
             <div id="medium_risk" class="alert alert-block">
-                <a href="#medium_risk_results"><span class="warning_text">0</span><br/>
+                <a href="#medium_risk_results"><span class="warning_text" id="num_medium_risk">0</span><br/>
                 Medium Risk</a>
             </div>
             <div id="low_risk" class="alert alert-info alert-block">
-                <a href="#low_risk_results"><span class="warning_text">0</span><br/>
+                <a href="#low_risk_results"><span class="warning_text" id="num_low_risk">0</span><br/>
                 Low Risk</a>
             </div>
             </span>
@@ -58,11 +58,20 @@
         
         <h2>Detailed Results</h2>
         <h3 id="high_risk_results">High Risk</h3>
+            <div id="high_risk_results_div">
+            </div>
         <h3 id="medium_risk_results">Medium Risk</h3>
+            <div id="medium_risk_results_div">
+            </div>
         <h3 id="low_risk_results">Low Risk / Informational</h3>
+            <div id="low_risk_results_div">
+            </div>
         
         <script type="text/javascript">
-            setInterval(function() {
+            var num_high_risk = 0;
+            var num_medium_risk = 0;
+            var num_low_risk = 0;
+            var looping_interval = setInterval(function() {
                 $.post("/en-US/xhr_scan_status/", {
                     "scan_id":"{{scan_id}}"
                 },
@@ -70,8 +79,24 @@
                     var json_data = jQuery.parseJSON(data);
                     var added_overall_progress = 0;
                     var num_plugins = 0;    //Use this to divide and get average progress
+                    
                     $.each(json_data.results, function(i, result) {
-                        $("#updating_results").val($("#updating_results").val() + "\n\n" + JSON.stringify(result['session']['state']));
+                        //$("#updating_results").val($("#updating_results").val() + "\n\n" + JSON.stringify(result));
+                        
+                        //Loop through each of the issues associated with the current plugin
+                        $.each(result.issues, function(i, issue) {
+                            $("#updating_results").val($("#updating_results").val() + "\n\n" + JSON.stringify(issue['severity']));
+                            if(JSON.stringify(issue['severity']) == "\"high\"") {
+                                num_high_risk += 1;
+                                $("#high_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
+                            } else if(JSON.stringify(issue['severity']) == "\"medium\"") {
+                                num_medium_risk += 1;
+                                $("#medium_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
+                            } else if(JSON.stringify(issue['severity']) == "\"low\"") {
+                                num_low_risk += 1;
+                                $("#low_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
+                            }
+                        });
                         
                         //Update progress bars
                         var div_id = result['session']['id'];
@@ -93,8 +118,13 @@
                     var avg_overall_progress = added_overall_progress / num_plugins;
                     $("#overall_progress").css("width", avg_overall_progress.toString() + "%");
                     
+                    //Update risk counters
+                    $("#num_high_risk").text(num_high_risk.toString());
+                    $("#num_medium_risk").text(num_medium_risk.toString());
+                    $("#num_low_risk").text(num_low_risk.toString());
                 });
             }, 5000);
+            //clearInterval(looping_interval);
         </script>
         
     {% else %}
