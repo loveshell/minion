@@ -1,0 +1,101 @@
+{% extends "scanner_base.html" %}
+
+{% block menu %}
+    <li><a href="/">Home</a></li>
+    <li><a href="/new">New Scan</a></li>
+    <li class="active"><a href="/myscans">My Scans</a></li>
+    <li><a href="#">Plans</a></li>
+{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <h1>My Scans</h1>
+    </div>
+    <h2>Scans I Started</h2>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Scan Date</th>
+                <th>Scan ID</th>
+                <th>Plan Used</th>
+                <th>Results</th>
+                <th>Rerun</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Mon Nov 5 13:10 2012</td>
+                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
+                <td>tickle</td>
+                <td><a class="btn btn-info" href="#">Results</a></td>
+                <td><a class="btn btn-primary" href="#">Rerun</a></td>
+                <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
+            </tr>
+            <tr>
+                <td>Mon Nov 5 13:10 2012</td>
+                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
+                <td>tickle</td>
+                <td><a class="btn btn-info" href="#">Results</a></td>
+                <td><a class="btn btn-primary" href="#">Rerun</a></td>
+                <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
+            </tr>
+            <tr>
+                <td>Mon Nov 5 13:10 2012</td>
+                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
+                <td>tickle</td>
+                <td><a class="btn btn-info" href="#">Results</a></td>
+                <td><a class="btn btn-primary" href="#">Rerun</a></td>
+                <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h2>Group Scans I Have Access To</h2>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Scan Date</th>
+                <th>Scan ID</th>
+                <th>Plan Used</th>
+                <th>Results</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Mon Nov 5 13:10 2012</td>
+                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
+                <td>tickle</td>
+                <td><a class="btn btn-info" href="#">Results</a></td>
+            </tr>
+            <tr>
+                <td>Mon Nov 5 13:10 2012</td>
+                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
+                <td>tickle</td>
+                <td><a class="btn btn-info" href="#">Results</a></td>
+            </tr>
+            <tr>
+                <td>Mon Nov 5 13:10 2012</td>
+                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
+                <td>tickle</td>
+                <td><a class="btn btn-info" href="#">Results</a></td>
+            </tr>
+        </tbody>
+    </table>
+
+{% endblock %}
+
+{% block footer %}
+    
+{% endblock %}
+
+{% block site_js %}
+    {% compress js %}
+    <script src="{{ static('scanner/js/libs/jquery-1.8.2.min.js') }}"></script>
+    <script src="{{ static('scanner/js/libs/jquery.cookie.js') }}"></script>
+    <script src="{{ static('scanner/js/init.js') }}"></script>
+    {% endcompress %}
+    {% if not request.user.is_active %}
+        {{ browserid_form.media }}
+    {% endif %}
+{% endblock %}

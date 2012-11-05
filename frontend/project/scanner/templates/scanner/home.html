@@ -3,12 +3,14 @@
 {% block menu %}
     <li class="active"><a href="/">Home</a></li>
     <li><a href="/new">New Scan</a></li>
-    <li><a href="#">My Scans</a></li>
+    <li><a href="/myscans">My Scans</a></li>
     <li><a href="#">Plans</a></li>
 {% endblock %}
 
 {% block content %}
+    <div class="page-header">
     <h1>Welcome</h1>
+    </div>
     <p>The scanner is designed to bridge the gap between developers and security by allowing project development teams to scan their applications while they
     are still in development. This allows security flaws to be detected at the earliest stages and also introduces the team and project to the security
     lifecycle at the earliest point.</p>

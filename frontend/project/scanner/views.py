@@ -65,6 +65,11 @@ def newscan(request, template=None):
     else:
         data = {"resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
         return render(request, template, data)
+    
+@mobile_template('scanner/{mobile/}myscans.html')
+def myscans(request, template=None):
+    data = {}
+    return render(request, template, data)
 
 @csrf_exempt
 def xhr_scan_status(request):

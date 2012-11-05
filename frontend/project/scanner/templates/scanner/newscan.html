@@ -3,12 +3,14 @@
 {% block menu %}
     <li><a href="/">Home</a></li>
     <li class="active"><a href="/new">New Scan</a></li>
-    <li><a href="#">My Scans</a></li>
+    <li><a href="/myscans">My Scans</a></li>
     <li><a href="#">Plans</a></li>
 {% endblock %}
 
 {% block content %}
+    <div class="page-header">
     <h1>New Scan</h1>
+    </div>
     {% if url_entered %}
         <h2>Overview</h2>
         <div id="errors_warnings">
@@ -23,7 +25,7 @@
             </div>
             <div id="low_risk" class="alert alert-info alert-block">
                 <a href="#low_risk_results"><span class="warning_text" id="num_low_risk">0</span><br/>
-                Low Risk</a>
+                Low Risk / Informational</a>
             </div>
             </span>
         </div>
@@ -33,7 +35,7 @@
             <div id="overall_progress" class="bar" style="width: 0%;"></div>
         </div>
         <h2>Details</h2>
-        <p>Now scanning: {{url_entered}}...
+        <p>Now scanning: {{url_entered}}
         <br/>Plan Selected: {{plan_selected}}
         <br/>Scan ID: {{scan_id}}
         <br/>Time Started: {{time_started}}</p>
@@ -85,14 +87,14 @@
                         
                         //Loop through each of the issues associated with the current plugin
                         $.each(result.issues, function(i, issue) {
-                            $("#updating_results").val($("#updating_results").val() + "\n\n" + JSON.stringify(issue['severity']));
+                            $("#updating_results").val($("#updating_results").val() + "From Plugin: " + JSON.stringify(result['session']['plugin_name']) + "\nSeverity: " + JSON.stringify(issue['severity']) + "\nSummary: " + JSON.stringify(issue['summary']) + "\n\n");
                             if(JSON.stringify(issue['severity']) == "\"high\"") {
                                 num_high_risk += 1;
                                 $("#high_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
                             } else if(JSON.stringify(issue['severity']) == "\"medium\"") {
                                 num_medium_risk += 1;
                                 $("#medium_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
-                            } else if(JSON.stringify(issue['severity']) == "\"low\"") {
+                            } else if(JSON.stringify(issue['severity']) == "\"info\"") {
                                 num_low_risk += 1;
                                 $("#low_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
                             }
