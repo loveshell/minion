@@ -8,16 +8,16 @@ import os
 import platform
 import time
 import traceback
-from minion.plugin_api import AbstractPlugin, ExternalProcessPlugin, ExternalProcessProtocol
+from minion.plugin_api import BlockingPlugin
 from zap import ZAP
 
 
-class ZAPPlugin(AbstractPlugin):
+class ZAPPlugin(BlockingPlugin):
 
     level = logging.DEBUG    
     logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
 
-    zap = ZAP(proxies={'http': 'http://127.0.0.1:8090', 'https': 'http://127.0.0.1:8090'})
+    zap = ZAP(proxies={'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'})
 
     ZAP_NAME = "zap.sh"
     
@@ -33,8 +33,8 @@ class ZAPPlugin(AbstractPlugin):
 
     def do_configure(self):
         logging.info("ZAP do_configure")
-        
-    def do_start(self):
+
+    def do_run(self):
         logging.info("ZAP do_start")
         zap_path = self.locate_program(self.ZAP_NAME)
         if zap_path is None:
@@ -125,5 +125,5 @@ class ZAPPlugin(AbstractPlugin):
                     "Solution" : alert.get('solution'), 
                     "URLs" : [alert.get('url')]});
 
-        return {"results" : issues};
+        return issues
 
