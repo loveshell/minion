@@ -5,6 +5,7 @@
 from setuptools import setup
 
 install_requires = [
+    'python-owasp-zap==0.0.01',
     'minion.plugin_service'
 ]
 
