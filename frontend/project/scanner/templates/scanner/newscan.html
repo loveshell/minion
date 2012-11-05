@@ -12,20 +12,26 @@
     {% if url_entered %}
         <h2>Overview</h2>
         <div id="errors_warnings">
+            <span class="risk_boxes">
             <div id="high_risk" class="alert alert-error alert-block">
-                <span class="warning_text">0</span><br/>
-                High Risk
+                <a href="#high_risk_results"><span class="warning_text">0</span><br/>
+                High Risk</a>
             </div>
             <div id="medium_risk" class="alert alert-block">
-                <span class="warning_text">0</span><br/>
-                Medium Risk
+                <a href="#medium_risk_results"><span class="warning_text">0</span><br/>
+                Medium Risk</a>
             </div>
             <div id="low_risk" class="alert alert-info alert-block">
-                <span class="warning_text">0</span><br/>
-                Low Risk
+                <a href="#low_risk_results"><span class="warning_text">0</span><br/>
+                Low Risk</a>
             </div>
+            </span>
         </div>
         <br style="clear: both;"/>
+        Overall Progress
+        <div class="progress progress-info progress-striped">
+            <div id="overall_progress" class="bar" style="width: 0%;"></div>
+        </div>
         <h2>Details</h2>
         <p>Now scanning: {{url_entered}}...
         <br/>Plan Selected: {{plan_selected}}
@@ -38,7 +44,7 @@
             {% for session in first_results %}
                 <div class="plugin_result">
                     {{session.plugin_name}}
-                    <div class="progress progress-info progress-striped">
+                    <div id="{{session.id}}_prog" class="progress progress-info progress-striped">
                         <div id="{{session.id}}" class="bar" style="width: 0%;"></div>
                     </div>
                 </div>
@@ -50,6 +56,11 @@
             
         </textarea>
         
+        <h2>Detailed Results</h2>
+        <h3 id="high_risk_results">High Risk</h3>
+        <h3 id="medium_risk_results">Medium Risk</h3>
+        <h3 id="low_risk_results">Low Risk / Informational</h3>
+        
         <script type="text/javascript">
             setInterval(function() {
                 $.post("/en-US/xhr_scan_status/", {
@@ -57,14 +68,31 @@
                 },
                 function(data) {
                     var json_data = jQuery.parseJSON(data);
-                    
+                    var added_overall_progress = 0;
+                    var num_plugins = 0;    //Use this to divide and get average progress
                     $.each(json_data.results, function(i, result) {
-                        $("#updating_results").val($("#updating_results").val() + "\n" + JSON.stringify(result['issues']));
+                        $("#updating_results").val($("#updating_results").val() + "\n\n" + JSON.stringify(result['session']['state']));
+                        
                         //Update progress bars
                         var div_id = result['session']['id'];
-                        var progress = result['session']['duration'] + "%";
-                        $("#" + div_id).css("width", progress);
+                        var progress = parseInt(result['session']['duration']);
+                        
+                        if(JSON.stringify(result['session']['state']) == "\"FAILED\"") {
+                            $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
+                            progress = 100;
+                        } else if(JSON.stringify(result['session']['state']) == "\"FINISHED\"") {
+                            progress = 100;
+                        }
+                        
+                        added_overall_progress += progress;
+                        num_plugins += 1;
+                        
+                        $("#" + div_id).css("width", progress.toString() + "%");
                     });
+                    
+                    var avg_overall_progress = added_overall_progress / num_plugins;
+                    $("#overall_progress").css("width", avg_overall_progress.toString() + "%");
+                    
                 });
             }, 5000);
         </script>
