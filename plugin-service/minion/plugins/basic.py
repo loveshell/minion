@@ -108,6 +108,6 @@ class ExceptionPlugin(BlockingPlugin):
 class IncrementalBlockingPlugin(BlockingPlugin):
     
     def do_run(self):
-        for n in range(0,10):
-            time.sleep(2)
+        for n in range(1,4):
+            time.sleep(1)
             self.report_results([{"summary":"This is issue #" + str(n), "severity":"low"}])
