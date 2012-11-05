@@ -107,7 +107,10 @@ class ExceptionPlugin(BlockingPlugin):
 
 class IncrementalBlockingPlugin(BlockingPlugin):
     
+    PROGRESS = ["Doing some work", "Doing some more work", "Almost done", "Finishing up!"]
+
     def do_run(self):
-        for n in range(1,4):
-            time.sleep(1)
+        for n in range(1,5):
+            self.report_progress(25*n, description = self.PROGRESS[n-1])
+            time.sleep(3)
             self.report_results([{"summary":"This is issue #" + str(n), "severity":"low"}])
