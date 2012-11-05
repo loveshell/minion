@@ -13,6 +13,7 @@ import optparse
 
 import zope.interface
 from twisted.internet import reactor
+from twisted.internet.threads import deferToThread
 from twisted.internet.defer import Deferred
 from twisted.internet.defer import DeferredSemaphore
 from twisted.internet.defer import succeed
@@ -130,29 +131,45 @@ class PluginServiceCallbacks:
         d.addErrback(self._genericErrorBack)
         return d
 
-    def report_progress(self, percentage, description = ""):
+    def _report_progress(self, percentage, description = ""):
         logging.debug("PluginServiceCallbacks.report_progress reported progress: %d/%s" % (percentage, str(description)))
         self.semaphore.run(self._post_async, "/session/%s/report/progress" % self.plugin_session_id,
                            { 'percentage': percentage, 'description': description })
 
-    def report_results(self, results):
+    def report_progress(self, percentage, description = ""):
+        deferToThread(self._report_progress, percentage, description)        
+    
+    def _report_results(self, results):
         logging.debug("PluginServiceCallbacks.report_results: " + str(results))
         self.semaphore.run(self._post_async, "/session/%s/report/results" % self.plugin_session_id, results)
+        logging.debug("PluginServiceCallbacks.report_results DONE")
 
-    def report_errors(self, errors):
+    def report_results(self,results):
+        deferToThread(self._report_results, results)
+
+    def _report_errors(self, errors):
         logging.debug("PluginServiceCallbacks.report_errors: " + str(errors))
         self.semaphore.run(self._post_async, "/session/%s/report/errors" % self.plugin_session_id, errors)
 
-    def report_finish(self):
+    def report_errors(self, errors):
+        deferToThread(self._report_errors, errors)
+
+    def _report_finish(self):
         logging.debug("PluginServiceCallbacks.report_finish")
         self.semaphore.run(self._post_async, "/session/%s/report/finish" % self.plugin_session_id, {})
         self.semaphore.run(self._stop_reactor_async)
+
+    def report_finish(self):
+        deferToThread(self._report_finish)
                 
-    def report_abort(self, exit_code = 1):
+    def _report_abort(self, exit_code = 1):
         logging.debug("PluginServiceCallbacks.report_abort: %d" % exit_code)
         # TODO Don't allow any any more calls after this. Enforce this.
         self.runner.exit_code = exit_code
         self.semaphore.run(self._stop_reactor_async)
+
+    def report_abort(self, exit_code = 1):
+        deferToThread(self._report_abort, exit_code)
     
     def configuration(self):
         logging.debug("PluginServiceCallbacks.configuration")

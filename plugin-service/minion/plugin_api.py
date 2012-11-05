@@ -7,6 +7,7 @@ import os
 import sys
 
 from twisted.internet import reactor
+from twisted.internet.threads import deferToThread
 from twisted.internet.error import ProcessDone, ProcessTerminated
 from twisted.internet.protocol import ProcessProtocol
 import zope.interface
@@ -115,16 +116,16 @@ class BlockingPlugin(AbstractPlugin):
     def do_run(self):
         logging.error("You forgot to override BlockingPlugin.run()")
 
-    def do_run_internal(self):
-        try:
-            self.do_run()
-            self.callbacks.report_finish()
-        except Exception as e:
-            logging.exception("Plugin threw uncaught exception")
-            self.report_abort(AbstractPlugin.EXIT_CODE_FAILED)
+    def _finish_with_success(self, result):
+        logging.debug("BlockingPlugin._finish_with_success")
+        self.callbacks.report_finish()
+
+    def _finish_with_failure(self, failure):
+        logging.debug("BlockingPlugin._finish_with_failure")
+        self.report_abort(AbstractPlugin.EXIT_CODE_FAILED)
 
     def do_start(self):
-        self.reactor.callFromThread(self.do_run_internal)
+        return deferToThread(self.do_run).addCallback(self._finish_with_success).addErrback(self._finish_with_failure)
         
 
 class ExternalProcessProtocol(ProcessProtocol):
