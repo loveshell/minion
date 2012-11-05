@@ -60,21 +60,24 @@ class LongRunningPlugin(BlockingPlugin):
         time.sleep(15)
 
 
-class DummyPlugin(AbstractPlugin):
+class IncrementalAsyncPlugin(AbstractPlugin):
 
     def emit_results(self):
+        logging.debug("IncrementalAsyncPlugin.emit_results")
         self.count += 1
-        self.report_results({"info": "Some Message #%d" % self.count})
+        self.report_results([{"summary":"This is issue #" + str(self.count), "severity":"low"}])
         if self.count == 3:
             self.loop.stop()
             self.report_finish()
 
     def do_start(self):
+        logging.debug("IncrementalAsyncPlugin.do_start")
         self.count = 0
         self.loop = LoopingCall(self.emit_results)
         self.loop.start(1.0)
 
     def do_terminate(self):
+        logging.debug("IncrementalAsyncPlugin.do_terminate")
         if self.loop:
             self.loop.stop()
 
@@ -101,3 +104,10 @@ class ExceptionPlugin(BlockingPlugin):
 
     def do_run(self):
         raise Exception("Oh no I am uncaught")
+
+class IncrementalBlockingPlugin(BlockingPlugin):
+    
+    def do_run(self):
+        for n in range(0,10):
+            time.sleep(2)
+            self.report_results([{"summary":"This is issue #" + str(n), "severity":"low"}])

@@ -227,19 +227,21 @@ if __name__ == "__main__":
 
     # This should be done with discovery or a configuration file instead
 
-    from minion.plugins.basic import DummyPlugin
     from minion.plugins.basic import AbortedPlugin
-    from minion.plugins.basic import FailedPlugin
     from minion.plugins.basic import ExceptionPlugin
+    from minion.plugins.basic import FailedPlugin
     from minion.plugins.basic import HSTSPlugin
+    from minion.plugins.basic import IncrementalAsyncPlugin
+    from minion.plugins.basic import IncrementalBlockingPlugin
     from minion.plugins.basic import LongRunningPlugin
     from minion.plugins.basic import XFrameOptionsPlugin
     
-    PLUGINS["minion.plugins.basic.DummyPlugin"] = DummyPlugin
     PLUGINS["minion.plugins.basic.AbortedPlugin"] = AbortedPlugin
-    PLUGINS["minion.plugins.basic.FailedPlugin"] = FailedPlugin
     PLUGINS["minion.plugins.basic.ExceptionPlugin"] = ExceptionPlugin
+    PLUGINS["minion.plugins.basic.FailedPlugin"] = FailedPlugin
     PLUGINS["minion.plugins.basic.HSTSPlugin"] = HSTSPlugin
+    PLUGINS["minion.plugins.basic.IncrementalAsyncPlugin"] = IncrementalAsyncPlugin
+    PLUGINS["minion.plugins.basic.IncrementalBlockingPlugin"] = IncrementalBlockingPlugin
     PLUGINS["minion.plugins.basic.LongRunningPlugin"] = LongRunningPlugin
     PLUGINS["minion.plugins.basic.XFrameOptionsPlugin"] = XFrameOptionsPlugin
 
