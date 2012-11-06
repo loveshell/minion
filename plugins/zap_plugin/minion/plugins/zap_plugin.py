@@ -14,9 +14,6 @@ from zap import ZAP
 
 class ZAPPlugin(BlockingPlugin):
 
-    level = logging.DEBUG    
-    logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
-
     zap = ZAP(proxies={'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'})
 
     ZAP_NAME = "zap.sh"
