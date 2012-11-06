@@ -53,6 +53,9 @@
             {% endfor %}
         </div>
         
+        <h2>Debugging</h2>
+        <textarea id="debug_results" style="width: 100%; height: 300px;"></textarea>
+        
         <h2>Live Results</h2>
         <textarea id="updating_results"></textarea>
         
@@ -81,7 +84,8 @@
                     var num_plugins = 0;    //Use this to divide and get average progress
                     
                     $.each(json_data.results, function(i, result) {
-                        //$("#updating_results").val($("#updating_results").val() + "PERCENTAGE: " + JSON.stringify(result['session']));
+                        $("#debug_results").val($("#debug_results").val() + "\n\nDEBUG:\n" + JSON.stringify(result));
+                        
                         //Loop through each of the issues associated with the current plugin
                         $.each(result.issues, function(i, issue) {
                             $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['session']['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
