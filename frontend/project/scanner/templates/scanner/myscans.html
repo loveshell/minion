@@ -11,6 +11,7 @@
     <div class="page-header">
         <h1>My Scans</h1>
     </div>
+    
     <h2>Scans I Started</h2>
     <table class="table table-bordered table-striped">
         <thead>
@@ -24,30 +25,17 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>Mon Nov 5 13:10 2012</td>
-                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
-                <td>tickle</td>
-                <td><a class="btn btn-info" href="#">Results</a></td>
-                <td><a class="btn btn-primary" href="#">Rerun</a></td>
-                <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
-            </tr>
-            <tr>
-                <td>Mon Nov 5 13:10 2012</td>
-                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
-                <td>tickle</td>
-                <td><a class="btn btn-info" href="#">Results</a></td>
-                <td><a class="btn btn-primary" href="#">Rerun</a></td>
-                <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
-            </tr>
-            <tr>
-                <td>Mon Nov 5 13:10 2012</td>
-                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
-                <td>tickle</td>
-                <td><a class="btn btn-info" href="#">Results</a></td>
-                <td><a class="btn btn-primary" href="#">Rerun</a></td>
-                <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
-            </tr>
+            {% for scan in scans %}
+                <tr>
+                    <td>{{ scan.scan_date }}</td>
+                    <td>{{ scan.scan_id }}</td>
+                    <td>{{ scan.scan_plan }}</td>
+                    <td><a class="btn btn-info" href="#">Results</a></td>
+                    <td><a class="btn btn-primary" href="#">Rerun</a></td>
+                    <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
+                </tr>
+            {% endfor %}
+            
         </tbody>
     </table>
     
@@ -62,18 +50,6 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>Mon Nov 5 13:10 2012</td>
-                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
-                <td>tickle</td>
-                <td><a class="btn btn-info" href="#">Results</a></td>
-            </tr>
-            <tr>
-                <td>Mon Nov 5 13:10 2012</td>
-                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
-                <td>tickle</td>
-                <td><a class="btn btn-info" href="#">Results</a></td>
-            </tr>
             <tr>
                 <td>Mon Nov 5 13:10 2012</td>
                 <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>

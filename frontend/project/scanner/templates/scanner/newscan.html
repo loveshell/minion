@@ -83,8 +83,7 @@
                     var num_plugins = 0;    //Use this to divide and get average progress
                     
                     $.each(json_data.results, function(i, result) {
-                        //$("#updating_results").val($("#updating_results").val() + "\n\n" + JSON.stringify(result));
-                        
+                        //$("#updating_results").val($("#updating_results").val() + "PERCENTAGE: " + JSON.stringify(result['session']));
                         //Loop through each of the issues associated with the current plugin
                         $.each(result.issues, function(i, issue) {
                             $("#updating_results").val($("#updating_results").val() + "From Plugin: " + JSON.stringify(result['session']['plugin_name']) + "\nSeverity: " + JSON.stringify(issue['severity']) + "\nSummary: " + JSON.stringify(issue['summary']) + "\n\n");
@@ -102,6 +101,7 @@
                         
                         //Update progress bars
                         var div_id = result['session']['id'];
+                        //var progress = parseInt(result['session']['progress']['percentage']);
                         var progress = parseInt(result['session']['duration']);
                         
                         if(JSON.stringify(result['session']['state']) == "\"FAILED\"") {

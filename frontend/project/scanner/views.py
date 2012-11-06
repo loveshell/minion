@@ -15,6 +15,7 @@ import json
 from django.core import serializers
 import time
 import requests
+from models import Scan
 
 #from minion.task_engine.TaskEngineClient import TaskEngineClient
 
@@ -57,6 +58,10 @@ def newscan(request, template=None):
             
             log.debug("data " + str(data))
     
+            #Add the new scan to the database
+            newscan1 = Scan(scan_id=scan_id, scan_creator=request.user, scan_date=time_started, scan_url=url_entered, scan_plan=plan_selected)
+            newscan1.save()
+    
             return render(request, template, data)
         else:
             data = {"resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
@@ -68,7 +73,8 @@ def newscan(request, template=None):
     
 @mobile_template('scanner/{mobile/}myscans.html')
 def myscans(request, template=None):
-    data = {}
+    myscan = Scan.objects.filter(scan_creator=request.user).order_by("scan_date")
+    data = {"scans":myscan}
     return render(request, template, data)
 
 @csrf_exempt
