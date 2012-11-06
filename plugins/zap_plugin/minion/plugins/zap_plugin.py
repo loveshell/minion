@@ -5,50 +5,49 @@
 
 import logging
 import os
-import platform
+import random
 import time
-import traceback
-from minion.plugin_api import BlockingPlugin
+
+from twisted.internet import reactor
+from twisted.internet.threads import deferToThread
+from minion.plugin_api import ExternalProcessPlugin
 from zap import ZAP
 
 
-class ZAPPlugin(BlockingPlugin):
-
-    zap = ZAP(proxies={'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'})
+class ZAPPlugin(ExternalProcessPlugin):
 
     ZAP_NAME = "zap.sh"
     
-    def locate_program(self, program_name):
-        for path in os.getenv('PATH').split(os.pathsep):
-            program_path = os.path.join(path, program_name)
-            if os.path.isfile(program_path) and os.access(program_path, os.X_OK):
-                return program_path
-
-    def spawn(self, path):
-        logging.info("Executing %s" % (path))
-        os.system(path)
-
     def do_configure(self):
-        logging.info("ZAP do_configure")
+        logging.debug("ZAPPlugin.do_configure")
+        self.zap_path = self.locate_program(self.ZAP_NAME)
+        if self.zap_path is None:
+            raise Exception("Cannot find %s in PATH" % ZAP_NAME)
+        # Validate the configuration
+        if self.configuration.get('target') is None or len(self.configuration['target']) == 0:
+            raise Exception("Missing or invalid target in configuration")
 
-    def do_run(self):
-        logging.info("ZAP do_start")
-        zap_path = self.locate_program(self.ZAP_NAME)
-        if zap_path is None:
-            raise Exception("Cannot find ZAP in path")
-        logging.debug("ZAP path=" + zap_path)
+    def do_process_ended(self, status):
+        logging.debug("ZAPPlugin.do_process_ended")
+        self.callbacks.report_finish()
+
+    def do_start(self):
+        logging.debug("ZAPPlugin.do_start")
+        # Start ZAP in daemon mode
+        self.zap_port = self._random_port()
+        args = ['-daemon', '-port', str(self.zap_port)]
+        self.spawn(self.zap_path, args)
+        # Start the main code in a thread
+        return deferToThread(self._blocking_zap_main)
         
-        self.output = ""
-        target = self.configuration['target']
-        if target is None or len(target) == 0:
-            raise Exception("Target not specified")
+    def _random_port(self):
+        return random.randint(8192, 16384)
 
-        logging.debug("ZAP path=" + zap_path)
-        
-        zap_path +=  ' -daemon > zap.out &'
-        self.spawn(zap_path)
-
+    def _blocking_zap_main(self):
+        logging.debug("ZAPPlugin._blocking_zap_main")
         try:
+            self.zap = ZAP(proxies={'http': 'http://127.0.0.1:%d' % self.zap_port, 'https': 'http://127.0.0.1:%d' % self.zap_port})
+            target = self.configuration['target']
             time.sleep(5)
             logging.info('Accessing target %s' % target)
             
@@ -57,6 +56,7 @@ class ZAPPlugin(BlockingPlugin):
                     self.zap.urlopen(target)
                     break
                 except:
+                    logging.exception("Failed to zap.urlopen")
                     time.sleep(2)
             
             # Give the sites tree a chance to get updated
@@ -95,8 +95,7 @@ class ZAPPlugin(BlockingPlugin):
             self.report_finish()
             
         except Exception as e:
-            logging.error("run() " + str(e))
-            logging.error(traceback.format_exc())
+            logging.exception("Error while executing zap plugin")
 
     def get_results(self):
         alerts = self.zap.alerts
