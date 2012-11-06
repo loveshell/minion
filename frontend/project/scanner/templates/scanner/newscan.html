@@ -61,14 +61,14 @@
         
         <h2>Detailed Results</h2>
         <h3 id="high_risk_results">High Risk</h3>
-            <div id="high_risk_results_div">
-            </div>
+                <ul id="high_risk_results_ul">
+                </ul>
         <h3 id="medium_risk_results">Medium Risk</h3>
-            <div id="medium_risk_results_div">
-            </div>
+                <ul id="medium_risk_results_ul">
+                </ul>
         <h3 id="low_risk_results">Low Risk / Informational</h3>
-            <div id="low_risk_results_div">
-            </div>
+                <ul id="low_risk_results_ul">
+                </ul>
         
         <script type="text/javascript">
             var num_high_risk = 0;
@@ -91,13 +91,13 @@
                             $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['session']['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
                             if(issue['Severity'] === "High") {
                                 num_high_risk += 1;
-                                $("#high_risk_results_div").append(issue['Summary'] + "<br/>");
+                                $("#high_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
                             } else if(issue['Severity'] === "Medium") {
                                 num_medium_risk += 1;
-                                $("#medium_risk_results_div").append(issue['Summary'] + "<br/>");
-                            } else if(issue['Severity'] === "Info") {
+                                $("#medium_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
+                            } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Low") {
                                 num_low_risk += 1;
-                                $("#low_risk_results_div").append(issue['Summary'] + "<br/>");
+                                $("#low_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
                             }
                         });
                         
