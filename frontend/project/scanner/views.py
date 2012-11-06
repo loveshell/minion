@@ -77,6 +77,12 @@ def myscans(request, template=None):
     data = {"scans":myscan}
     return render(request, template, data)
 
+@mobile_template('scanner/{mobile/}scan.html')
+def scan(request, template=None, scan_id="0"):
+    #myscan = Scan.objects.filter(scan_creator=request.user).order_by("scan_date")
+    data = {"scan_id":scan_id}
+    return render(request, template, data)
+
 @csrf_exempt
 def xhr_scan_status(request):
     if request.is_ajax():
