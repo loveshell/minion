@@ -26,15 +26,15 @@ class XFrameOptionsPlugin(BlockingPlugin):
     def do_run(self):        
         r = requests.get(self.configuration['target'])
         if r.status_code != 200:
-            self.report_error([{"info":"Received a non-200 response: %d" % r.status_code}])
+            self.report_error([{"Info":"Received a non-200 response: %d" % r.status_code}])
         else:
             if 'x-frame-origin' in r.headers:
                 if r.headers['x-frame-options'] not in ('DENY', 'SAMEORIGIN'):
-                    self.report_results([{ "summary":"Site has X-Frame-Options header but it has an unknown or invalid value: %s" % r.headers['x-frame-options'],"severity":"high" }])
+                    self.report_results([{ "Summary":"Site has X-Frame-Options header but it has an unknown or invalid value: %s" % r.headers['x-frame-options'],"Severity":"High" }])
                 else:
-                    self.report_results([{ "summary":"Site has a correct X-Frame-Options header", "severity":"info" }])
+                    self.report_results([{ "Summary":"Site has a correct X-Frame-Options header", "Severity":"Info" }])
             else:
-                self.report_results([{"summary":"Site has no X-Frame-Options header set", "severity":"high"}])
+                self.report_results([{"Summary":"Site has no X-Frame-Options header set", "Severity":"High"}])
 
 
 class HSTSPlugin(BlockingPlugin):
@@ -46,12 +46,12 @@ class HSTSPlugin(BlockingPlugin):
     def do_run(self):
         r = requests.get(self.configuration['target'])
         if r.status_code != 200:
-            self.report_errors([{ "summary":"Received a non-200 response: %d" % r.status_code, "severity":"info" }])
+            self.report_errors([{ "Summary":"Received a non-200 response: %d" % r.status_code, "Severity":"Info" }])
         else:            
             if r.url.startswith("https://") and 'hsts' not in r.headers:
-                self.report_results([{ "summary":"Site does not set HSTS header", "severity":"high" }])
+                self.report_results([{ "Summary":"Site does not set HSTS header", "Severity":"High" }])
             else:
-                self.report_results([{ "summary":"Site sets HSTS header", "severity":"info" }])
+                self.report_results([{ "Summary":"Site sets HSTS header", "Severity":"Info" }])
 
 
 class LongRunningPlugin(BlockingPlugin):
@@ -65,7 +65,7 @@ class IncrementalAsyncPlugin(AbstractPlugin):
     def emit_results(self):
         logging.debug("IncrementalAsyncPlugin.emit_results")
         self.count += 1
-        self.report_results([{"summary":"This is issue #" + str(self.count), "severity":"low"}])
+        self.report_results([{"Summary":"This is issue #" + str(self.count), "Severity":"Low"}])
         if self.count == 3:
             self.loop.stop()
             self.report_finish()
@@ -113,4 +113,4 @@ class IncrementalBlockingPlugin(BlockingPlugin):
         for n in range(1,5):
             self.report_progress(25*n, description = self.PROGRESS[n-1])
             time.sleep(3)
-            self.report_results([{"summary":"This is issue #" + str(n), "severity":"low"}])
+            self.report_results([{"Summary":"This is issue #" + str(n), "Severity":"Low"}])

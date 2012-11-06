@@ -86,16 +86,16 @@
                         //$("#updating_results").val($("#updating_results").val() + "PERCENTAGE: " + JSON.stringify(result['session']));
                         //Loop through each of the issues associated with the current plugin
                         $.each(result.issues, function(i, issue) {
-                            $("#updating_results").val($("#updating_results").val() + "From Plugin: " + JSON.stringify(result['session']['plugin_name']) + "\nSeverity: " + JSON.stringify(issue['severity']) + "\nSummary: " + JSON.stringify(issue['summary']) + "\n\n");
-                            if(JSON.stringify(issue['severity']) == "\"high\"") {
+                            $("#updating_results").val($("#updating_results").val() + "From Plugin: " + JSON.stringify(result['session']['plugin_name']) + "\nSeverity: " + JSON.stringify(issue['Severity']) + "\nSummary: " + JSON.stringify(issue['Summary']) + "\n\n");
+                            if(JSON.stringify(issue['Severity']) == "\"High\"") {
                                 num_high_risk += 1;
-                                $("#high_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
-                            } else if(JSON.stringify(issue['severity']) == "\"medium\"") {
+                                $("#high_risk_results_div").append(JSON.stringify(issue['Summary']) + "<br/>");
+                            } else if(JSON.stringify(issue['Severity']) == "\"Medium\"") {
                                 num_medium_risk += 1;
-                                $("#medium_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
-                            } else if(JSON.stringify(issue['severity']) == "\"info\"") {
+                                $("#medium_risk_results_div").append(JSON.stringify(issue['Summary']) + "<br/>");
+                            } else if(JSON.stringify(issue['Severity']) == "\"Info\"") {
                                 num_low_risk += 1;
-                                $("#low_risk_results_div").append(JSON.stringify(issue['summary']) + "<br/>");
+                                $("#low_risk_results_div").append(JSON.stringify(issue['Summary']) + "<br/>");
                             }
                         });
                         

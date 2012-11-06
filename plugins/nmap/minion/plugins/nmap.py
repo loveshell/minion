@@ -15,10 +15,10 @@ def parse_nmap_output(output):
         if match is not None:
             #ports.append({'port':match.group(1),'protocol':match.group(2), 'service':match.group(3)})
             port = int(match.group(1))
-            severity = 'high'
+            severity = 'High'
             if port in (80,443):
-                severity = 'info'
-            ports.append({'summary': 'Port %d is open' % port, 'severity': severity})
+                severity = 'Info'
+            ports.append({'Summary': 'Port %d is open' % port, 'Severity': severity})
     return ports
 
 

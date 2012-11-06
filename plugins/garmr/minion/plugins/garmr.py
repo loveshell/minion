@@ -15,12 +15,12 @@ def parse_garmr_xml(xml):
         for testcase in testsuite.iter('testcase'):
             failure = testcase.find('failure')
             skipped = testcase.find('skipped')
-            severity = "info"
+            severity = "Info"
             if failure is not None:
-                severity = "high"
+                severity = "High"
             elif skipped is not None:
-                severity = "info"
-	    results.append({ 'summary': testcase.get('name'), 'severity': severity})
+                severity = "Info"
+	    results.append({ 'Summary': testcase.get('name'), 'Severity': severity})
     return results
 
 
