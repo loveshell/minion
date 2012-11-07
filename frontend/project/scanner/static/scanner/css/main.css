@@ -105,6 +105,13 @@ body {
     float: left;
 }
 
+/* MYSCANS PAGE */
+.myscan_table_url {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* FOOTER STYLES */
 #footer {
     text-align: center;

@@ -1,0 +1,31 @@
+{% extends "scanner_base.html" %}
+
+{% block menu %}
+    <li><a href="/">Home</a></li>
+    <li><a href="/new">New Scan</a></li>
+    <li class="active"><a href="/myscans">My Scans</a></li>
+    <li><a href="#">Plans</a></li>
+{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+    <h1>Scan Results</h1>
+    </div>
+    Scan ID Provided: {{scan_id}}
+
+{% endblock %}
+
+{% block footer %}
+    
+{% endblock %}
+
+{% block site_js %}
+    {% compress js %}
+    <script src="{{ static('scanner/js/libs/jquery-1.8.2.min.js') }}"></script>
+    <script src="{{ static('scanner/js/libs/jquery.cookie.js') }}"></script>
+    <script src="{{ static('scanner/js/init.js') }}"></script>
+    {% endcompress %}
+    {% if not request.user.is_active %}
+        {{ browserid_form.media }}
+    {% endif %}
+{% endblock %}
