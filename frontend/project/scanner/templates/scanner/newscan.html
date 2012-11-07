@@ -106,7 +106,7 @@
                         //Update progress bars
                         var div_id = result['id'];
                         //var progress = parseInt(result['session']['progress']['percentage']);
-                        var progress = parseInt(result['progress']);
+                        var progress = parseInt(result['progress']) || 0;
                         
                         if(result['state'] === "FAILED") {
                             $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
@@ -139,25 +139,32 @@
         </script>
         
     {% else %}
-        <form class="form-horizontal well" method="POST" action="">
-            <div id="new_scan_enter_url">
-                <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/>
-                <select name="plan_selection" id="plan_dropdown">
-                    <option>Select a plan...</option>
-                    {% for plan in resp %}
-                        <option id="{{ plan.name }}">{{ plan.name }}</option>
-                    {% endfor %}
-                </select>
-                <br/>
-                <button type="submit" class="btn btn-primary">Start Scan</button>
-            </div>
-            <div id="new_scan_advanced_options">
-                <div id="new_scan_advanced_options_expander">
-                    Additional Options (coming soon!)
-                </div>
-            </div>
-            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-        </form>
+        {% if error %}
+            <div class="alert alert-error"><strong>Error</strong><br/>{{ error }}</div>
+            {% else %}
+                {% if error_retry %}
+                    <div class="alert alert-error"><strong>Error</strong><br/>{{ error_retry }}</div>
+                {% endif %}
+                <form class="form-horizontal well" method="POST" action="">
+                    <div id="new_scan_enter_url">
+                        <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/>
+                        <select name="plan_selection" id="plan_dropdown">
+                            <option>Select a plan...</option>
+                            {% for plan in resp %}
+                                <option id="{{ plan.name }}">{{ plan.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <br/>
+                        <button type="submit" class="btn btn-primary">Start Scan</button>
+                    </div>
+                    <div id="new_scan_advanced_options">
+                        <div id="new_scan_advanced_options_expander">
+                            Additional Options (coming soon!)
+                        </div>
+                    </div>
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                </form>
+        {% endif %}
     {% endif %}
 
 {% endblock %}

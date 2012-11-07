@@ -29,8 +29,14 @@ def home(request, template=None):
 
 @mobile_template('scanner/{mobile/}newscan.html')
 def newscan(request, template=None):
-    r = requests.get(settings.TASK_ENGINE_URL + '/plans')
-    resp_json = r.json
+    data = {}
+    try:
+        r = requests.get(settings.TASK_ENGINE_URL + '/plans')
+        resp_json = r.json
+    except:
+        data = {"error":"Error retrieving available plans. Check connection to task engine."}
+        #If you can't retrieve the plans, no use in continuing, return error now.
+        return render(request, template, data)
     #Page has been POSTed to
     if request.method == 'POST':
         if request.POST["new_scan_url_input"] and request.POST["plan_selection"] in r.text:
@@ -41,22 +47,30 @@ def newscan(request, template=None):
             #Task Engine work
             #Start the scan using provided url to PUT to the API endpoint
             payload = json.dumps({"target": url_entered})
-            put = requests.put(settings.TASK_ENGINE_URL + "/scan/create/" + plan_selected, data=payload)
-            #Decode the response and extract the ID
-            put_resp = put.json
-            scan_id = put_resp['scan']['id']
+            try:
+                put = requests.put(settings.TASK_ENGINE_URL + "/scan/create/" + plan_selected, data=payload)
+                #Decode the response and extract the ID
+                put_resp = put.json
+                scan_id = put_resp['scan']['id']
+                
+                #Post START to the API endpoint to begin the scan
+                starter = requests.post(settings.TASK_ENGINE_URL + "/scan/" + scan_id + "/state", data="START")
+            except:
+                data = {"error":"Error starting session. Check connection to the task engine."}
+                #If you can't start a session, no use in continuing, return now
+                return render(request, template, data)
             
-            #Post START to the API endpoint to begin the scan
-            starter = requests.post(settings.TASK_ENGINE_URL + "/scan/" + scan_id + "/state", data="START")
-            log.debug("STARTER " + str(starter))
-            
-            #Retrieve the first set of responses to construct progress bars
-            first_results = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
-            first_results_json = first_results.json
-            
-            data = {"url_entered":url_entered, "plan_selected":plan_selected, "scan_id":scan_id, "time_started":time_started, "first_results":first_results_json['scan']['sessions'], "task_engine_url":settings.TASK_ENGINE_URL}
-            
-            log.debug("data " + str(data))
+            try:
+                #Retrieve the first set of responses to construct progress bars
+                first_results = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
+                first_results_json = first_results.json
+                
+                data = {"url_entered":url_entered, "plan_selected":plan_selected, "scan_id":scan_id, "time_started":time_started, "first_results":first_results_json['scan']['sessions'], "task_engine_url":settings.TASK_ENGINE_URL}
+                
+                log.debug("data " + str(data))
+            except:
+                data = {"error":"Scan was started, but the initial results could not be retrieved."}
+                return render(request, template, data)
     
             #Add the new scan to the database
             newscan1 = Scan(scan_id=scan_id, scan_creator=request.user, scan_date=time_started, scan_url=url_entered, scan_plan=plan_selected)
@@ -64,7 +78,7 @@ def newscan(request, template=None):
     
             return render(request, template, data)
         else:
-            data = {"resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
+            data = {"error_retry":"Invalid URL or plan. Please enter a valid URL and select a plan.", "resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
             return render(request, template, data)
     #Page has not been POSTed to
     else:
