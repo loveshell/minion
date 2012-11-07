@@ -91,6 +91,16 @@ def myscans(request, template=None):
     data = {"scans":myscan}
     return render(request, template, data)
 
+@mobile_template('scanner/{mobile/}plans.html')
+def plans(request, template=None):
+    try:
+        plans = requests.get(settings.TASK_ENGINE_URL + '/plans')
+        plans = plans.json
+        data = {"plans":plans['plans']}
+    except:
+        data = {"error":"Error retrieving plans. Check the connection to the task engine."}
+    return render(request, template, data)
+
 @mobile_template('scanner/{mobile/}scan.html')
 def scan(request, template=None, scan_id="0"):
     #myscan = Scan.objects.filter(scan_creator=request.user).order_by("scan_date")

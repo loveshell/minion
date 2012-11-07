@@ -65,6 +65,11 @@ body {
     margin-bottom: 10px;
 }
 
+#text_below_plan_dropdown {
+    margin: -10px 0 10px 0;
+    font-size: .8em;
+}
+
 #new_scan_advanced_options_expander {
     margin-top: 40px;
     font-size: small;

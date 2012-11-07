@@ -4,7 +4,7 @@
     <li><a href="/">Home</a></li>
     <li class="active"><a href="/new">New Scan</a></li>
     <li><a href="/myscans">My Scans</a></li>
-    <li><a href="#">Plans</a></li>
+    <li><a href="/plans">Plans</a></li>
 {% endblock %}
 
 {% block content %}
@@ -154,7 +154,9 @@
                                 <option id="{{ plan.name }}">{{ plan.name }}</option>
                             {% endfor %}
                         </select>
-                        <br/>
+                        <div id="text_below_plan_dropdown">
+                            <a href="/plans">Click here to view and edit available plans</a>
+                        </div>
                         <button type="submit" class="btn btn-primary">Start Scan</button>
                     </div>
                     <div id="new_scan_advanced_options">

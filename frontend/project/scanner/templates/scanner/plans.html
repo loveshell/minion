@@ -3,15 +3,23 @@
 {% block menu %}
     <li><a href="/">Home</a></li>
     <li><a href="/new">New Scan</a></li>
-    <li class="active"><a href="/myscans">My Scans</a></li>
-    <li><a href="/plans">Plans</a></li>
+    <li><a href="/myscans">My Scans</a></li>
+    <li class="active"><a href="/plans">Plans</a></li>
 {% endblock %}
 
 {% block content %}
     <div class="page-header">
-    <h1>Scan Results</h1>
+        <h1>Plans</h1>
     </div>
-    Scan ID Provided: {{scan_id}}
+    
+    {% if error %}
+        <div class="alert alert-error"><strong>Error</strong><br/>{{ error }}</div>
+        {% else %}
+            {% for plan in plans %}
+                <h2>{{plan.name}}</h2>
+                <p>{{plan.description}}</p>
+            {% endfor %}
+    {% endif %}
 
 {% endblock %}
 
