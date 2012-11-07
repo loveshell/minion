@@ -74,21 +74,23 @@
             var num_high_risk = 0;
             var num_medium_risk = 0;
             var num_low_risk = 0;
+            var since_token = ""
             var looping_interval = setInterval(function() {
                 $.post("/en-US/xhr_scan_status/", {
-                    "scan_id":"{{scan_id}}"
+                    "scan_id":"{{scan_id}}",
+                    "token":since_token
                 },
                 function(data) {
                     var json_data = jQuery.parseJSON(data);
                     var added_overall_progress = 0;
                     var num_plugins = 0;    //Use this to divide and get average progress
                     
-                    $.each(json_data.results, function(i, result) {
+                    $.each(json_data.scan.sessions, function(i, result) {
                         $("#debug_results").val($("#debug_results").val() + "\n\nDEBUG:\n" + JSON.stringify(result));
                         
                         //Loop through each of the issues associated with the current plugin
                         $.each(result.issues, function(i, issue) {
-                            $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['session']['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
+                            $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
                             if(issue['Severity'] === "High") {
                                 num_high_risk += 1;
                                 $("#high_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
@@ -102,14 +104,14 @@
                         });
                         
                         //Update progress bars
-                        var div_id = result['session']['id'];
+                        var div_id = result['id'];
                         //var progress = parseInt(result['session']['progress']['percentage']);
-                        var progress = parseInt(result['session']['duration']);
+                        var progress = parseInt(result['progress']);
                         
-                        if(result['session']['state'] === "FAILED") {
+                        if(result['state'] === "FAILED") {
                             $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
                             progress = 100;
-                        } else if(result['session']['state'] === "FINISHED") {
+                        } else if(result['state'] === "FINISHED") {
                             progress = 100;
                         }
                         
@@ -126,9 +128,14 @@
                     $("#num_high_risk").text(num_high_risk.toString());
                     $("#num_medium_risk").text(num_medium_risk.toString());
                     $("#num_low_risk").text(num_low_risk.toString());
+                    
+                    since_token = json_data["token"];
+                    if(since_token === null) {
+                        clearInterval(looping_interval);
+                    }
                 });
             }, 5000);
-            //clearInterval(looping_interval);
+            
         </script>
         
     {% else %}

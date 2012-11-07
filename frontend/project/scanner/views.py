@@ -90,7 +90,11 @@ def xhr_scan_status(request):
         if request.method == 'POST':
             #log.debug("\n\nAJAX_POST_RECEIVED " + str(request.POST))
             scan_id = request.POST["scan_id"]
-            scan_status = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id + '/results')
+            scan_token = request.POST["token"]
+            if scan_token:
+                scan_status = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id + '/results?token=' + scan_token)
+            else:
+                scan_status = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id + '/results')
             message = scan_status.content
     else:
         message = ""
