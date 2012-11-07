@@ -17,7 +17,7 @@
         <thead>
             <tr>
                 <th>Scan Date</th>
-                <th>Scan ID</th>
+                <th class="myscan_table_url">Scanned URL</th>
                 <th>Plan Used</th>
                 <th>Results</th>
                 <th>Rerun</th>
@@ -28,7 +28,7 @@
             {% for scan in scans %}
                 <tr>
                     <td>{{ scan.scan_date }}</td>
-                    <td>{{ scan.scan_id }}</td>
+                    <td class="myscan_table_url">{{ scan.scan_url }}</td>
                     <td>{{ scan.scan_plan }}</td>
                     <td><a class="btn btn-info" href="/scan/{{scan.scan_id}}">Results</a></td>
                     <td><a class="btn btn-primary" href="#">Rerun</a></td>
