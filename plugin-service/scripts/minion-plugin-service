@@ -97,6 +97,7 @@ class PluginSession:
                  'plugin_name': self.plugin_name,
                  'progress': self.progress,
                  'started': self.started,
+                 'issues': [],
                  'duration': self.duration if self.duration else int(time.time()) - self.started }
 
 #
@@ -194,6 +195,10 @@ def report_results(request, session_id):
         return jsonify({'success': False, 'error': 'no-such-session'})
     results = json.load(request.content)
     logging.debug("Received results from plugin session %s: %s" % (session,str(results)))
+    # Add a timestamp to the results. This is not super accurate but that is ok, it is
+    # just to get them incrementally later from the task engine api.
+    for result in results:
+        result['_time'] = int(time.time() * 1000)
     session.results += results
     return "{}"
 

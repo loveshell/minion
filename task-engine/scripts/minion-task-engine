@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import base64
 import copy
 import json
 import logging
@@ -140,7 +141,7 @@ class Scan:
                 logging.debug("Scan._periodic_session_task - Going to get results from " + session['plugin_name'])
                 url = self.plugin_service_api + "/session/%s/results" % session['id']
                 result = yield getPage(url.encode('ascii')).addCallback(json.loads)
-                session['results'] = result['issues']
+                session['issues'] = result['issues']
                 # If the task is finished, and we just grabbed the final results, then mark it as done
                 if session['state'] == 'FINISHED':
                     session['_done'] = True                    
@@ -201,6 +202,46 @@ class Scan:
                  'configuration': self.configuration,
                  'sessions': self.plugin_sessions }
 
+    #
+    # Return just the results of the scan. Condensed form of summary()
+    # that has an optional since parameter that will let you specify
+    # incremental results.
+    #
+
+    def results(self, since = 0):
+        sessions = []
+        for session in self.plugin_sessions:
+            issues = []
+            for i in session['issues']:
+                if i['_time'] > since:
+                    issues.append(i)
+            s = { 'id': session['id'],
+                  'plugin_name': session['plugin_name'],
+                  'state': session['state'],
+                  'progress': session['progress'],
+                  'issues': issues }
+            sessions.append(s)
+        return { 'id': self.id, 'state': self.state, 'sessions': sessions }
+
+
+def all_sessions_done(sessions):
+    for session in sessions:
+        if session['state'] in ('CREATED', 'STARTED'):
+            return False
+    return True
+                 
+def parse_token(token):
+    return int(base64.b64decode(token))
+
+def generate_token(since, sessions):
+    if not all_sessions_done(sessions):
+        max_time = since
+        for session in sessions:
+            issues = []
+            for i in session['issues']:
+                if i['_time'] > max_time:
+                    max_time = i['_time']
+        return base64.b64encode(str(max_time))
 
 def jsonify(data):
     return json.dumps(data, sort_keys=True, indent=4) + "\n"
@@ -259,14 +300,13 @@ def get_scan_results(request, scan_id):
     scan = SCANS.get(scan_id)
     if scan is None:
         return jsonify({'success': False, 'error': 'no-such-scan'})
-    # Transform this into something that the fontend expects
-    # TODO Clean this up
-    summary = scan.summary()
-    results = []
-    for session in summary['sessions']:
-        results.append({'session': session, 'issues': session.get('results', [])})
-        if 'results' in session:  del session['results']
-    return jsonify({ 'success': True, 'results': results })
+    since = 0
+    if 'token' in request.args:
+        since = parse_token(request.args['token'][0])
+    results = scan.results(since=since)
+    return jsonify({ 'success': True,
+                     'scan': results,
+                     'token': generate_token(since, results['sessions']) })
 
 if __name__ == "__main__":
 
