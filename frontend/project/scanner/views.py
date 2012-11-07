@@ -87,8 +87,11 @@ def newscan(request, template=None):
     
 @mobile_template('scanner/{mobile/}myscans.html')
 def myscans(request, template=None):
-    myscan = Scan.objects.filter(scan_creator=request.user).order_by("scan_date")
-    data = {"scans":myscan}
+    try:
+        myscan = Scan.objects.filter(scan_creator=request.user).order_by("scan_date")
+        data = {"scans":myscan}
+    except:
+        data = {"error":"Database could not be reached. Check database connection."}
     return render(request, template, data)
 
 @mobile_template('scanner/{mobile/}plans.html')

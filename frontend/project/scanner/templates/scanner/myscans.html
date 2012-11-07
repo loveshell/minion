@@ -12,52 +12,56 @@
         <h1>My Scans</h1>
     </div>
     
-    <h2>Scans I Started</h2>
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>Scan Date</th>
-                <th class="myscan_table_url">Scanned URL</th>
-                <th>Plan Used</th>
-                <th>Results</th>
-                <th>Rerun</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for scan in scans %}
+    {% if error %}
+        <div class="alert alert-error"><strong>Error</strong><br/>{{ error }}</div>
+    {% else %}
+        <h2>Scans I Started</h2>
+        <table class="table table-bordered table-striped">
+            <thead>
                 <tr>
-                    <td>{{ scan.scan_date }}</td>
-                    <td class="myscan_table_url">{{ scan.scan_url }}</td>
-                    <td>{{ scan.scan_plan }}</td>
-                    <td><a class="btn btn-info" href="/scan/{{scan.scan_id}}">Results</a></td>
-                    <td><a class="btn btn-primary" href="#">Rerun</a></td>
-                    <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
+                    <th>Scan Date</th>
+                    <th class="myscan_table_url">Scanned URL</th>
+                    <th>Plan Used</th>
+                    <th>Results</th>
+                    <th>Rerun</th>
+                    <th>Delete</th>
                 </tr>
-            {% endfor %}
-            
-        </tbody>
-    </table>
-    
-    <h2>Group Scans I Have Access To</h2>
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>Scan Date</th>
-                <th>Scan ID</th>
-                <th>Plan Used</th>
-                <th>Results</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Mon Nov 5 13:10 2012</td>
-                <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
-                <td>tickle</td>
-                <td><a class="btn btn-info" href="#">Results</a></td>
-            </tr>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for scan in scans %}
+                    <tr>
+                        <td>{{ scan.scan_date }}</td>
+                        <td class="myscan_table_url">{{ scan.scan_url }}</td>
+                        <td>{{ scan.scan_plan }}</td>
+                        <td><a class="btn btn-info" href="/scan/{{scan.scan_id}}">Results</a></td>
+                        <td><a class="btn btn-primary" href="#">Rerun</a></td>
+                        <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
+                    </tr>
+                {% endfor %}
+                
+            </tbody>
+        </table>
+        
+        <h2>Group Scans I Have Access To</h2>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Scan Date</th>
+                    <th>Scan ID</th>
+                    <th>Plan Used</th>
+                    <th>Results</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Mon Nov 5 13:10 2012</td>
+                    <td>3c0883e2-c22f-47a8-932a-958a7846c2ad</td>
+                    <td>tickle</td>
+                    <td><a class="btn btn-info" href="#">Results</a></td>
+                </tr>
+            </tbody>
+        </table>
+    {% endif %}
 
 {% endblock %}
 
