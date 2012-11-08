@@ -6,6 +6,7 @@ import copy
 import json
 import logging
 import optparse
+import os
 import sys
 import uuid
 
@@ -18,6 +19,7 @@ from twisted.internet.defer import DeferredList
 from twisted.internet.defer import DeferredSemaphore
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import deferLater
+from twisted.internet.threads import deferToThread
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
@@ -89,6 +91,65 @@ SCANS = {}
 PLUGIN_SERVICE_API = "http://localhost:8181"
 PLUGIN_SERVICE_POLL_INTERVAL = 1.0
 
+DATABASE = None
+
+
+class ScanDatabase:
+    def load(self, scan_id):
+        pass
+    def store(self, scan):
+        pass
+    def delete(self, scan_id):
+        pass
+
+class MemoryScanDatabase(ScanDatabase):
+
+    def __init__(self):
+        self._scans = {}
+
+    def load(self, scan_id):
+        def _main():
+            return self._scans.get(scan_id)
+        return deferLater(reactor, 0, _main)
+
+    def store(self, scan):
+        def _main():
+            self._scans[scan['id']] = scan
+        return deferLater(reactor, 0, _main)
+
+    def delete(self, scan_id):
+        def _main():
+            if scan_id in self._scans:
+                del self._scans[scan_id]
+        return deferLater(reactor, 0, _main)
+
+class FileScanDatabase(ScanDatabase):
+
+    def __init__(self, path):
+        self._path = path
+
+    def load(self, scan_id):
+        def _main():
+            path = os.path.join(self._path, scan_id)
+            if os.path.isfile(path):
+                with open(path) as file:
+                    return json.load(file)
+        return deferToThread(_main)
+
+    def store(self, scan):
+        def _main():
+            path = os.path.join(self._path, scan['id'])
+            with open(path, "w") as file:
+                json.dump(scan, file, indent=4)
+        return deferToThread(_main)
+
+    def delete(self, scan_id):
+        def _main():
+            path = os.path.join(self._path, scan_id)
+            if os.path.isfile(path):
+                os.remove(path)
+        return deferToThread(_main)
+
 
 class Scan:
 
@@ -151,6 +212,7 @@ class Scan:
             yield deferLater(reactor, PLUGIN_SERVICE_POLL_INTERVAL, self._periodic_session_task)        
         else:
             self.state = 'FINISHED'
+            result = yield DATABASE.store(self.summary())
     
     #
     # Start the scan. We change the status to STARTED and call our periodic
@@ -272,10 +334,15 @@ def put_scan(request, plan_name):
 
 @klein.route('/scan/<string:scan_id>')
 def get_scan(request, scan_id):
+    def _handleLoadScanFromDatabase(result):
+        if result is None:
+            return jsonify({'success': False, 'error': 'no-such-scan'})
+        else:
+            return jsonify({ 'success': True, 'scan': result })
     scan = SCANS.get(scan_id)
-    if scan is None:
-        return jsonify({'success': False, 'error': 'no-such-scan'})
-    return jsonify({ 'success': True, 'scan': scan.summary() })
+    if scan is not None:
+        return jsonify({ 'success': True, 'scan': scan.summary() })        
+    return DATABASE.load(scan_id).addCallback(_handleLoadScanFromDatabase)
 
 @klein.route('/scan/<string:scan_id>/state', methods=['POST'])
 def post_scan_state(request, scan_id):
@@ -315,10 +382,21 @@ if __name__ == "__main__":
     parser.add_option("--address", default="127.0.0.1")
     parser.add_option("--port", default=8282, type="int")
 
+    parser.add_option("--database-type", default="memory")
+    parser.add_option("--database-location")
+
     (options, args) = parser.parse_args()
 
     level = logging.DEBUG if options.debug else logging.INFO
     logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
     logging.info("Starting task-engine on %s:%d" % (options.address,options.port));
+
+    if options.database_type == "memory":
+        DATABASE = MemoryScanDatabase()
+    elif options.database_type == "file":
+        DATABASE = FileScanDatabase(options.database_location)
+    else:
+        logging.error("Unknown database type '%s'" % options.database_type)
+        sys.exit(1)
 
     klein.run(options.address, options.port)
