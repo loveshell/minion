@@ -88,10 +88,28 @@ def newscan(request, template=None):
 @mobile_template('scanner/{mobile/}myscans.html')
 def myscans(request, template=None):
     try:
-        myscan = Scan.objects.filter(scan_creator=request.user).order_by("scan_date")
+        myscan = Scan.objects.filter(scan_creator=request.user).order_by("-scan_date")
         data = {"scans":myscan}
     except:
         data = {"error":"Database could not be reached. Check database connection."}
+    return render(request, template, data)
+
+@mobile_template('scanner/{mobile/}scan.html')
+def scan(request, template=None, scan_id="0"):
+    try:
+        #Retrieve the first set of responses to construct progress bars
+        first_results = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
+        first_results_json = first_results.json
+        
+        data = {"results":first_results_json['scan']}
+        
+        #data = {"url_entered":first_results_json['scan']['configuration']['target'], "plan_selected":first_results_json['scan']['plan_name'], "scan_id":first_results_json['scan']['id'], "time_started":"TIME HERE", "first_results":first_results_json['scan']['sessions'], "task_engine_url":settings.TASK_ENGINE_URL}
+        
+    except:
+        data = {"error":"Error retrieving scan information. Check provided id."}
+        return render(request, template, data)
+    
+    
     return render(request, template, data)
 
 @mobile_template('scanner/{mobile/}plans.html')
@@ -102,12 +120,6 @@ def plans(request, template=None):
         data = {"plans":plans['plans']}
     except:
         data = {"error":"Error retrieving plans. Check the connection to the task engine."}
-    return render(request, template, data)
-
-@mobile_template('scanner/{mobile/}scan.html')
-def scan(request, template=None, scan_id="0"):
-    #myscan = Scan.objects.filter(scan_creator=request.user).order_by("scan_date")
-    data = {"scan_id":scan_id}
     return render(request, template, data)
 
 @csrf_exempt
