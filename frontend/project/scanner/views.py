@@ -101,9 +101,10 @@ def scan(request, template=None, scan_id="0"):
         first_results = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
         first_results_json = first_results.json
         
-        data = {"results":first_results_json['scan']}
-        
-        #data = {"url_entered":first_results_json['scan']['configuration']['target'], "plan_selected":first_results_json['scan']['plan_name'], "scan_id":first_results_json['scan']['id'], "time_started":"TIME HERE", "first_results":first_results_json['scan']['sessions'], "task_engine_url":settings.TASK_ENGINE_URL}
+        if first_results_json['scan']['state'] == "FINISHED":
+            data = {"finished":"finished","results":first_results_json['scan']}
+        else:
+            data = {"results":first_results_json['scan']}
         
     except:
         data = {"error":"Error retrieving scan information. Check provided id."}

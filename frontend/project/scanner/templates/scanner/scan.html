@@ -15,8 +15,13 @@
     {% if error %}
         <div class="alert alert-error"><strong>Error</strong><br/>{{ error }}</div>
     {% else %}
-          
         <h2>Overview</h2>
+        {% if finished %}
+        <span class="label label-info">Scan is finished running.</span>
+        {% else %}
+            <span class="label label-info">Scan is currently running...</span>
+        {% endif %}
+        <br/><br/>
         <div id="errors_warnings">
             <span class="risk_boxes">
             <div id="high_risk" class="alert alert-error alert-block">
@@ -34,34 +39,36 @@
             </span>
         </div>
         <br style="clear: both;"/>
-        Overall Progress
-        <div class="progress progress-info progress-striped">
-            <div id="overall_progress" class="bar" style="width: 0%;"></div>
-        </div>
+        {% if not finished %}
+            Overall Progress
+            <div class="progress progress-info progress-striped">
+                <div id="overall_progress" class="bar" style="width: 0%;"></div>
+            </div>
+        {% endif %}
         <h2>Details</h2>
         <p>Now scanning: {{results['configuration']['target']}}
         <br/>Plan Selected: {{results['plan']['name']}}
         <br/>Scan ID: {{results['id']}}
         <br/>Time Started: </p>
         
-        
-        <h2>Plugin Status</h2>
-        <div id="results_area">
-            {% for session in results['sessions'] %}
-                <div class="plugin_result">
-                    {{session.plugin_name}}
-                    <div id="{{session.id}}_prog" class="progress progress-info progress-striped">
-                        <div id="{{session.id}}" class="bar" style="width: 0%;"></div>
+        {% if not finished %}
+            <h2>Plugin Status</h2>
+            <div id="results_area">
+                {% for session in results['sessions'] %}
+                    <div class="plugin_result">
+                        {{session.plugin_name}}
+                        <div id="{{session.id}}_prog" class="progress progress-info progress-striped">
+                            <div id="{{session.id}}" class="bar" style="width: 0%;"></div>
+                        </div>
                     </div>
-                </div>
-            {% endfor %}
-        </div>
+                {% endfor %}
+            </div>
+        {% endif %}
         
-        <h2>Debugging</h2>
-        <textarea id="debug_results" style="width: 100%; height: 300px;"></textarea>
-        
-        <h2>Live Results</h2>
-        <textarea id="updating_results"></textarea>
+        {% if not finished %}
+            <h2>Live Results</h2>
+            <textarea id="updating_results"></textarea>
+        {% endif %}
         
         <h2>Detailed Results</h2>
         <h3 id="high_risk_results">High Risk</h3>
@@ -79,7 +86,13 @@
             var num_medium_risk = 0;
             var num_low_risk = 0;
             var since_token = ""
-            var looping_interval = setInterval(function() {
+            {% if finished %}
+                var looping_interval = setTimeout(queryUpdate);
+            {% else %}
+                var looping_interval = setInterval(queryUpdate, 5000);
+            {% endif %}
+            
+            function queryUpdate() {
                 $.post("/en-US/xhr_scan_status/", {
                     "scan_id":"{{results['id']}}",
                     "token":since_token
@@ -138,7 +151,7 @@
                         clearInterval(looping_interval);
                     }
                 });
-            }, 5000);
+            }
             
         </script>
     {% endif %}
