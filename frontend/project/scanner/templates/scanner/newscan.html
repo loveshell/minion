@@ -11,173 +11,37 @@
     <div class="page-header">
     <h1>New Scan</h1>
     </div>
-    {% if url_entered %}
-        <h2>Overview</h2>
-        <div id="errors_warnings">
-            <span class="risk_boxes">
-            <div id="high_risk" class="alert alert-error alert-block">
-                <a href="#high_risk_results"><span class="warning_text" id="num_high_risk">0</span><br/>
-                High Risk</a>
-            </div>
-            <div id="medium_risk" class="alert alert-block">
-                <a href="#medium_risk_results"><span class="warning_text" id="num_medium_risk">0</span><br/>
-                Medium Risk</a>
-            </div>
-            <div id="low_risk" class="alert alert-info alert-block">
-                <a href="#low_risk_results"><span class="warning_text" id="num_low_risk">0</span><br/>
-                Low Risk / Informational</a>
-            </div>
-            </span>
-        </div>
-        <br style="clear: both;"/>
-        Overall Progress
-        <div class="progress progress-info progress-striped">
-            <div id="overall_progress" class="bar" style="width: 0%;"></div>
-        </div>
-        <h2>Details</h2>
-        <p>Now scanning: {{url_entered}}
-        <br/>Plan Selected: {{plan_selected}}
-        <br/>Scan ID: {{scan_id}}
-        <br/>Time Started: {{time_started}}</p>
-        
-        
-        <h2>Plugin Status</h2>
-        <div id="results_area">
-            {% for session in first_results %}
-                <div class="plugin_result">
-                    {{session.plugin_name}}
-                    <div id="{{session.id}}_prog" class="progress progress-info progress-striped">
-                        <div id="{{session.id}}" class="bar" style="width: 0%;"></div>
+    {% if error %}
+        <div class="alert alert-error"><strong>Error</strong><br/>{{ error }}</div>
+        {% else %}
+            {% if error_retry %}
+                <div class="alert alert-error"><strong>Error</strong><br/>{{ error_retry }}</div>
+            {% endif %}
+            <form class="form-horizontal well" method="POST" action="">
+                <div id="new_scan_enter_url">
+                    <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/>
+                    <select name="plan_selection" id="plan_dropdown">
+                        <option>Select a plan...</option>
+                        {% for plan in plans %}
+                            <option id="{{ plan.name }}">{{ plan.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div id="text_below_plan_dropdown">
+                        <a href="/plans">Click here to view and edit available plans</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Start Scan</button>
+                </div>
+                <div id="new_scan_advanced_options">
+                    <div id="new_scan_advanced_options_expander">
+                        Additional Options (coming soon!)
                     </div>
                 </div>
-            {% endfor %}
-        </div>
-        
-        <h2>Live Results</h2>
-        <textarea id="updating_results"></textarea>
-        
-        <h2>Detailed Results</h2>
-        <h3 id="high_risk_results">High Risk</h3>
-                <ul id="high_risk_results_ul">
-                </ul>
-        <h3 id="medium_risk_results">Medium Risk</h3>
-                <ul id="medium_risk_results_ul">
-                </ul>
-        <h3 id="low_risk_results">Low Risk / Informational</h3>
-                <ul id="low_risk_results_ul">
-                </ul>
-        
-        <script type="text/javascript">
-            var num_high_risk = 0;
-            var num_medium_risk = 0;
-            var num_low_risk = 0;
-            var since_token = ""
-            var looping_interval = setInterval(function() {
-                $.post("/en-US/xhr_scan_status/", {
-                    "scan_id":"{{scan_id}}",
-                    "token":since_token
-                },
-                function(data) {
-                    var json_data = jQuery.parseJSON(data);
-                    var added_overall_progress = 0;
-                    var num_plugins = 0;    //Use this to divide and get average progress
-                    
-                    $.each(json_data.scan.sessions, function(i, result) {
-                        
-                        //Loop through each of the issues associated with the current plugin
-                        $.each(result.issues, function(i, issue) {
-                            $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
-                            if(issue['Severity'] === "High") {
-                                num_high_risk += 1;
-                                $("#high_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                            } else if(issue['Severity'] === "Medium") {
-                                num_medium_risk += 1;
-                                $("#medium_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                            } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Low") {
-                                num_low_risk += 1;
-                                $("#low_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                            }
-                        });
-                        
-                        //Update progress bars
-                        var div_id = result['id'];
-                        //var progress = parseInt(result['session']['progress']['percentage']);
-                        var progress = parseInt(result['progress']) || 0;
-                        
-                        if(result['state'] === "FAILED") {
-                            $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
-                            progress = 100;
-                        } else if(result['state'] === "FINISHED") {
-                            progress = 100;
-                        }
-                        
-                        added_overall_progress += progress;
-                        num_plugins += 1;
-                        
-                        $("#" + div_id).css("width", progress.toString() + "%");
-                    });
-                    
-                    var avg_overall_progress = added_overall_progress / num_plugins;
-                    $("#overall_progress").css("width", avg_overall_progress.toString() + "%");
-                    
-                    //Update risk counters
-                    $("#num_high_risk").text(num_high_risk.toString());
-                    $("#num_medium_risk").text(num_medium_risk.toString());
-                    $("#num_low_risk").text(num_low_risk.toString());
-                    
-                    since_token = json_data["token"];
-                    if(since_token === null) {
-                        clearInterval(looping_interval);
-                    }
-                });
-            }, 2000);
-            
-        </script>
-        
-    {% else %}
-        {% if error %}
-            <div class="alert alert-error"><strong>Error</strong><br/>{{ error }}</div>
-            {% else %}
-                {% if error_retry %}
-                    <div class="alert alert-error"><strong>Error</strong><br/>{{ error_retry }}</div>
-                {% endif %}
-                <form class="form-horizontal well" method="POST" action="">
-                    <div id="new_scan_enter_url">
-                        <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/>
-                        <select name="plan_selection" id="plan_dropdown">
-                            <option>Select a plan...</option>
-                            {% for plan in resp %}
-                                <option id="{{ plan.name }}">{{ plan.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div id="text_below_plan_dropdown">
-                            <a href="/plans">Click here to view and edit available plans</a>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Start Scan</button>
-                    </div>
-                    <div id="new_scan_advanced_options">
-                        <div id="new_scan_advanced_options_expander">
-                            Additional Options (coming soon!)
-                        </div>
-                    </div>
-                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-                </form>
-        {% endif %}
+                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+            </form>
     {% endif %}
 
 {% endblock %}
 
 {% block footer %}
     
-{% endblock %}
-
-{% block site_js %}
-    {% compress js %}
-    <script src="{{ static('scanner/js/libs/jquery-1.8.2.min.js') }}"></script>
-    <script src="{{ static('scanner/js/libs/jquery.cookie.js') }}"></script>
-    <script src="{{ static('scanner/js/init.js') }}"></script>
-    {% endcompress %}
-    {% if not request.user.is_active %}
-        {{ browserid_form.media }}
-    {% endif %}
 {% endblock %}

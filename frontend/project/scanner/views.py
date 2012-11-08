@@ -1,34 +1,27 @@
-import logging
-from django.shortcuts import render
-import bleach
-import commonware
+from django.shortcuts import render, redirect
 from funfactory.log import log_cef
-from mobility.decorators import mobile_template
-from session_csrf import anonymous_csrf
 from django.core.context_processors import csrf
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-import urllib2
 from django.conf import settings
 from django.utils import simplejson
-import json
 from django.core import serializers
-import time
-import requests
+from mobility.decorators import mobile_template
+from session_csrf import anonymous_csrf
 from models import Scan
-
-#from minion.task_engine.TaskEngineClient import TaskEngineClient
+import logging, bleach, commonware, urllib2, json, time, requests
 
 log = commonware.log.getLogger('playdoh')
 
 @mobile_template('scanner/{mobile/}home.html')
 def home(request, template=None):
     """Home main view"""
-    data = {}  # You'd add data here that you're sending to the template.
+    data = {}
     return render(request, template, data)
 
 @mobile_template('scanner/{mobile/}newscan.html')
 def newscan(request, template=None):
+    """New scan page, form to enter URL, pick a plan, etc."""
     data = {}
     try:
         r = requests.get(settings.TASK_ENGINE_URL + '/plans')
@@ -37,7 +30,7 @@ def newscan(request, template=None):
         data = {"error":"Error retrieving available plans. Check connection to task engine."}
         #If you can't retrieve the plans, no use in continuing, return error now.
         return render(request, template, data)
-    #Page has been POSTed to
+    #Page has been POSTed to, create a scan and redirect to /scan/id
     if request.method == 'POST':
         if request.POST["new_scan_url_input"] and request.POST["plan_selection"] in r.text:
             url_entered = request.POST["new_scan_url_input"]        #Needs sanitization??
@@ -59,37 +52,27 @@ def newscan(request, template=None):
                 data = {"error":"Error starting session. Check connection to the task engine."}
                 #If you can't start a session, no use in continuing, return now
                 return render(request, template, data)
-            
-            try:
-                #Retrieve the first set of responses to construct progress bars
-                first_results = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
-                first_results_json = first_results.json
-                
-                data = {"url_entered":url_entered, "plan_selected":plan_selected, "scan_id":scan_id, "time_started":time_started, "first_results":first_results_json['scan']['sessions'], "task_engine_url":settings.TASK_ENGINE_URL}
-                
-                log.debug("data " + str(data))
-            except:
-                data = {"error":"Scan was started, but the initial results could not be retrieved."}
-                return render(request, template, data)
     
             #Add the new scan to the database
             newscan1 = Scan(scan_id=scan_id, scan_creator=request.user, scan_date=time_started, scan_url=url_entered, scan_plan=plan_selected)
             newscan1.save()
     
-            return render(request, template, data)
+            #return render(request, template, data)
+            return redirect('/scan/'+scan_id)
         else:
-            data = {"error_retry":"Invalid URL or plan. Please enter a valid URL and select a plan.", "resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
+            data = {"error_retry":"Invalid URL or plan. Please enter a valid URL and select a plan.", "plans":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
             return render(request, template, data)
     #Page has not been POSTed to
     else:
-        data = {"resp":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
+        data = {"plans":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
         return render(request, template, data)
     
 @mobile_template('scanner/{mobile/}myscans.html')
 def myscans(request, template=None):
+    """Page showing all scans by the user"""
     try:
-        myscan = Scan.objects.filter(scan_creator=request.user).order_by("-scan_date")
-        data = {"scans":myscan}
+        myscans = Scan.objects.filter(scan_creator=request.user).order_by("-scan_date")
+        data = {"scans":myscans}
     except:
         data = {"error":"Database could not be reached. Check database connection."}
     return render(request, template, data)
@@ -101,20 +84,30 @@ def scan(request, template=None, scan_id="0"):
         first_results = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
         first_results_json = first_results.json
         
+        num_high, num_med, num_low = 0, 0, 0;
         if first_results_json['scan']['state'] == "FINISHED":
-            data = {"finished":"finished","results":first_results_json['scan']}
+            for session in first_results_json['scan']['sessions']:
+                for issue in session['issues']:
+                    if issue['Severity'] == "High":
+                        num_high += 1;
+                    elif issue['Severity'] == "Medium":
+                        num_med += 1;
+                    elif issue['Severity'] == "Medium" or issue['Severity'] == "Informational":
+                        num_low += 1;
+            
+            data = {"finished":"finished","results":first_results_json['scan'],"num_high":num_high,"num_med":num_med,"num_low":num_low}
         else:
-            data = {"results":first_results_json['scan']}
+            data = {"results":first_results_json['scan'],"num_high":num_high,"num_med":num_med,"num_low":num_low}
         
     except:
         data = {"error":"Error retrieving scan information. Check provided id."}
         return render(request, template, data)
-    
-    
+
     return render(request, template, data)
 
 @mobile_template('scanner/{mobile/}plans.html')
 def plans(request, template=None):
+    """Page showing all plans available"""
     try:
         plans = requests.get(settings.TASK_ENGINE_URL + '/plans')
         plans = plans.json

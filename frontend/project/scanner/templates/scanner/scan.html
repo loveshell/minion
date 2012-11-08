@@ -25,15 +25,15 @@
         <div id="errors_warnings">
             <span class="risk_boxes">
             <div id="high_risk" class="alert alert-error alert-block">
-                <a href="#high_risk_results"><span class="warning_text" id="num_high_risk">0</span><br/>
+                <a href="#high_risk_results"><span class="warning_text" id="num_high_risk">{{num_high}}</span><br/>
                 High Risk</a>
             </div>
             <div id="medium_risk" class="alert alert-block">
-                <a href="#medium_risk_results"><span class="warning_text" id="num_medium_risk">0</span><br/>
+                <a href="#medium_risk_results"><span class="warning_text" id="num_medium_risk">{{num_med}}</span><br/>
                 Medium Risk</a>
             </div>
             <div id="low_risk" class="alert alert-info alert-block">
-                <a href="#low_risk_results"><span class="warning_text" id="num_low_risk">0</span><br/>
+                <a href="#low_risk_results"><span class="warning_text" id="num_low_risk">{{num_low}}</span><br/>
                 Low Risk / Informational</a>
             </div>
             </span>
@@ -73,87 +73,104 @@
         <h2>Detailed Results</h2>
         <h3 id="high_risk_results">High Risk</h3>
                 <ul id="high_risk_results_ul">
+                    {% for session in results.sessions %}
+                        {% for issue in session.issues%}
+                            {% if issue['Severity'] == "High" %}
+                                <li>{{issue['Summary']}}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
                 </ul>
         <h3 id="medium_risk_results">Medium Risk</h3>
                 <ul id="medium_risk_results_ul">
+                    {% for session in results.sessions %}
+                        {% for issue in session.issues%}
+                            {% if issue['Severity'] == "Medium" %}
+                                <li>{{issue['Summary']}}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
                 </ul>
         <h3 id="low_risk_results">Low Risk / Informational</h3>
                 <ul id="low_risk_results_ul">
+                    {% for session in results.sessions %}
+                        {% for issue in session.issues%}
+                            {% if issue['Severity'] == "Low" or issue['Severity'] == "Informational" %}
+                                <li>{{issue['Summary']}}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
                 </ul>
+        {% if not finished %}
+            <script type="text/javascript">
+                var num_high_risk = 0;
+                var num_medium_risk = 0;
+                var num_low_risk = 0;
+                var since_token = ""
+                var looping_interval = setInterval(queryUpdate, 1000);
                 
-        <script type="text/javascript">
-            var num_high_risk = 0;
-            var num_medium_risk = 0;
-            var num_low_risk = 0;
-            var since_token = ""
-            {% if finished %}
-                var looping_interval = setTimeout(queryUpdate);
-            {% else %}
-                var looping_interval = setInterval(queryUpdate, 5000);
-            {% endif %}
-            
-            function queryUpdate() {
-                $.post("/en-US/xhr_scan_status/", {
-                    "scan_id":"{{results['id']}}",
-                    "token":since_token
-                },
-                function(data) {
-                    var json_data = jQuery.parseJSON(data);
-                    var added_overall_progress = 0;
-                    var num_plugins = 0;    //Use this to divide and get average progress
-                    
-                    $.each(json_data.scan.sessions, function(i, result) {
-                        $("#debug_results").val($("#debug_results").val() + "\n\nDEBUG:\n" + JSON.stringify(result));
+                function queryUpdate() {
+                    $.post("/en-US/xhr_scan_status/", {
+                        "scan_id":"{{results['id']}}",
+                        "token":since_token
+                    },
+                    function(data) {
+                        var json_data = jQuery.parseJSON(data);
+                        var added_overall_progress = 0;
+                        var num_plugins = 0;    //Use this to divide and get average progress
                         
-                        //Loop through each of the issues associated with the current plugin
-                        $.each(result.issues, function(i, issue) {
-                            $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
-                            if(issue['Severity'] === "High") {
-                                num_high_risk += 1;
-                                $("#high_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                            } else if(issue['Severity'] === "Medium") {
-                                num_medium_risk += 1;
-                                $("#medium_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                            } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Low") {
-                                num_low_risk += 1;
-                                $("#low_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
+                        $.each(json_data.scan.sessions, function(i, result) {
+                            $("#debug_results").val($("#debug_results").val() + "\n\nDEBUG:\n" + JSON.stringify(result));
+                            
+                            //Loop through each of the issues associated with the current plugin
+                            $.each(result.issues, function(i, issue) {
+                                $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
+                                if(issue['Severity'] === "High") {
+                                    num_high_risk += 1;
+                                    $("#high_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
+                                } else if(issue['Severity'] === "Medium") {
+                                    num_medium_risk += 1;
+                                    $("#medium_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
+                                } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Low") {
+                                    num_low_risk += 1;
+                                    $("#low_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
+                                }
+                            });
+                            
+                            //Update progress bars
+                            var div_id = result['id'];
+                            var progress = parseInt(result['progress']) || 0;
+                            
+                            if(result['state'] === "FAILED") {
+                                $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
+                                progress = 100;
+                            } else if(result['state'] === "FINISHED") {
+                                progress = 100;
                             }
+                            
+                            added_overall_progress += progress;
+                            num_plugins += 1;
+                            
+                            $("#" + div_id).css("width", progress.toString() + "%");
                         });
                         
-                        //Update progress bars
-                        var div_id = result['id'];
-                        //var progress = parseInt(result['session']['progress']['percentage']);
-                        var progress = parseInt(result['progress']) || 0;
+                        var avg_overall_progress = added_overall_progress / num_plugins;
+                        $("#overall_progress").css("width", avg_overall_progress.toString() + "%");
                         
-                        if(result['state'] === "FAILED") {
-                            $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
-                            progress = 100;
-                        } else if(result['state'] === "FINISHED") {
-                            progress = 100;
+                        //Update risk counters
+                        $("#num_high_risk").text(num_high_risk.toString());
+                        $("#num_medium_risk").text(num_medium_risk.toString());
+                        $("#num_low_risk").text(num_low_risk.toString());
+                        
+                        since_token = json_data["token"];
+                        if(since_token === null) {
+                            clearInterval(looping_interval);
                         }
-                        
-                        added_overall_progress += progress;
-                        num_plugins += 1;
-                        
-                        $("#" + div_id).css("width", progress.toString() + "%");
                     });
-                    
-                    var avg_overall_progress = added_overall_progress / num_plugins;
-                    $("#overall_progress").css("width", avg_overall_progress.toString() + "%");
-                    
-                    //Update risk counters
-                    $("#num_high_risk").text(num_high_risk.toString());
-                    $("#num_medium_risk").text(num_medium_risk.toString());
-                    $("#num_low_risk").text(num_low_risk.toString());
-                    
-                    since_token = json_data["token"];
-                    if(since_token === null) {
-                        clearInterval(looping_interval);
-                    }
-                });
-            }
-            
-        </script>
+                }
+                
+            </script>
+        {% endif %}
     {% endif %}
 
 {% endblock %}
