@@ -139,7 +139,12 @@
                             
                             //Update progress bars
                             var div_id = result['id'];
-                            var progress = parseInt(result['progress']['percentage']) || 0;
+                            //Try catch in case null is returned for progress in plugins that don't support percentage
+                            try {
+                                var progress = parseInt(result['progress']) || 0;
+                            } catch (err) {
+                                var progress = 0;
+                            }
                             
                             if(result['state'] === "FAILED") {
                                 $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
