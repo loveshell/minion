@@ -7,7 +7,7 @@ from setuptools import setup
 install_requires = [
     'Twisted==12.2.0',
     'requests==0.14.2',
-    'klein'
+    'cyclone==1.0-rc13'
 ]
 
 setup(name="minion.task_engine",

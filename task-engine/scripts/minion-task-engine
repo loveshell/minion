@@ -10,8 +10,7 @@ import os
 import sys
 import uuid
 
-import klein
-import zope.interface
+import cyclone.web
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
@@ -20,6 +19,7 @@ from twisted.internet.defer import DeferredSemaphore
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import deferLater
 from twisted.internet.threads import deferToThread
+from twisted.python import log
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
@@ -91,8 +91,6 @@ SCANS = {}
 PLUGIN_SERVICE_API = "http://localhost:8181"
 PLUGIN_SERVICE_POLL_INTERVAL = 1.0
 
-DATABASE = None
-
 
 class ScanDatabase:
     def load(self, scan_id):
@@ -153,9 +151,10 @@ class FileScanDatabase(ScanDatabase):
 
 class Scan:
 
-    def __init__(self, plan, configuration):
+    def __init__(self, plan, configuration, database):
         self.plan = plan
         self.configuration = configuration
+        self.database = database
         self.id = str(uuid.uuid4())
         self.state = 'CREATED'
         self.plugin_configurations = []
@@ -212,7 +211,7 @@ class Scan:
             yield deferLater(reactor, PLUGIN_SERVICE_POLL_INTERVAL, self._periodic_session_task)        
         else:
             self.state = 'FINISHED'
-            result = yield DATABASE.store(self.summary())
+            result = yield self.database.store(self.summary())
     
     #
     # Start the scan. We change the status to STARTED and call our periodic
@@ -285,118 +284,178 @@ class Scan:
             sessions.append(s)
         return { 'id': self.id, 'state': self.state, 'sessions': sessions }
 
+class PlansHandler(cyclone.web.RequestHandler):
 
-def all_sessions_done(sessions):
-    for session in sessions:
-        if session['state'] in ('CREATED', 'STARTED'):
-            return False
-    return True
-                 
-def parse_token(token):
-    return int(base64.b64decode(token))
+    def get(self):
+        plans = [{'name': plan['name'], 'description': plan['description']} for plan in PLANS.values()]
+        self.finish({'success': True, 'plans': plans})
 
-def generate_token(since, sessions):
-    if not all_sessions_done(sessions):
-        max_time = since
-        for session in sessions:
-            issues = []
-            for i in session['issues']:
-                if i['_time'] > max_time:
-                    max_time = i['_time']
-        return base64.b64encode(str(max_time))
+class PlanHandler(cyclone.web.RequestHandler):
 
-def jsonify(data):
-    return json.dumps(data, sort_keys=True, indent=4) + "\n"
+    def get(self, plan_name):
+        plan = PLANS.get(plan_name)
+        if plan is None:
+            return {'success': False, 'error': 'no-such-plan'}
+        self.finish({'success': True, 'plan': PLANS[plan_name]})
 
+class CreateScanHandler(cyclone.web.RequestHandler):
 
-@klein.route('/plans', methods=['GET'])
-def get_plans(request):
-    plans = [{'name': plan['name'], 'description': plan['description']} for plan in PLANS.values()]
-    return jsonify({ 'success': True, 'plans': plans })
+    @inlineCallbacks
+    def put(self, plan_name):
 
-@klein.route('/plans/<string:plan_name>', methods=['GET'])
-def get_plan(request, plan_name):
-    plan = PLANS.get(plan_name)
-    if plan is None:
-        return jsonify({'success': False, 'error': 'no-such-plan'})
-    return jsonify({ 'success': True, 'plan': PLANS[plan_name] })
+        plan = PLANS.get(plan_name)
+        if plan is None:
+            self.finish({'success': False, 'error': 'no-such-plan'})
+            return
 
-@klein.route('/scan/create/<string:plan_name>', methods=['PUT'])
-def put_scan(request, plan_name):
-    plan = PLANS.get(plan_name)
-    if plan is None:
-        return jsonify({'success': False, 'error': 'no-such-plan'})
-    plan = copy.deepcopy(plan)
-    configuration = json.loads(request.content.getvalue())
-    scan = Scan(plan, configuration)
-    SCANS[scan.id] = scan
-    return scan.create().addCallback(lambda summary: jsonify({ 'success': True, 'scan': summary }))
+        plan = copy.deepcopy(plan)
 
-@klein.route('/scan/<string:scan_id>')
-def get_scan(request, scan_id):
-    def _handleLoadScanFromDatabase(result):
+        configuration = json.loads(self.request.body)
+        scan = Scan(plan, configuration, self.application.database)
+        SCANS[scan.id] = scan
+
+        summary = yield scan.create()
+        self.finish({ 'success': True, 'scan': summary })
+
+class ChangeScanStateHandler(cyclone.web.RequestHandler):
+    
+    def post(self, scan_id):
+
+        state = self.request.body
+        if state not in ('START', 'STOP'):
+            self.finish({'success': False, 'error': 'unknown-state'})
+            return
+
+        scan = SCANS.get(scan_id)
+        if scan is None:
+            self.finish({'success': False, 'error': 'no-such-scan'})
+            return
+        
+        if state == 'START':
+            if scan.state != 'CREATED':
+                self.finish({'success': False, 'error': 'unknown-state-transition'})
+                return
+            scan.start()
+        elif state == 'STOP':
+            if scan.state != 'STARTED':
+                self.finish({'success': False, 'error': 'unknown-state-transition'})
+                return
+            scan.stop()
+
+        self.finish({'success': True})
+
+class ScanHandler(cyclone.web.RequestHandler):
+
+    @inlineCallbacks
+    def get(self, scan_id):
+
+        scan = SCANS.get(scan_id)
+        if scan is not None:
+            self.finish({ 'success': True, 'scan': scan.summary() })
+            return
+
+        result = yield self.application.database.load(scan_id)
         if result is None:
-            return jsonify({'success': False, 'error': 'no-such-scan'})
+            self.finish({'success': False, 'error': 'no-such-scan'})
         else:
-            return jsonify({ 'success': True, 'scan': result })
-    scan = SCANS.get(scan_id)
-    if scan is not None:
-        return jsonify({ 'success': True, 'scan': scan.summary() })        
-    return DATABASE.load(scan_id).addCallback(_handleLoadScanFromDatabase)
+            self.finish({ 'success': True, 'scan': result })
 
-@klein.route('/scan/<string:scan_id>/state', methods=['POST'])
-def post_scan_state(request, scan_id):
-    state = request.content.getvalue()
-    if state not in ('START', 'STOP'):
-        return jsonify({'success': False, 'error': 'unknown-state'})
-    scan = SCANS.get(scan_id)
-    if scan is None:
-        return jsonify({'success': False, 'error': 'no-such-scan'})
-    if state == 'START':
-        if scan.state != 'CREATED':
-            return jsonify({'success': False, 'error': 'unknown-state-transition'})
-        scan.start()
-    elif state == 'STOP':
-        if scan.state != 'STARTED':
-            return jsonify({'success': False, 'error': 'unknown-state-transition'})
-        scan.stop()
-    return jsonify({'success': True})
 
-@klein.route('/scan/<string:scan_id>/results', methods=['GET'])
-def get_scan_results(request, scan_id):
-    scan = SCANS.get(scan_id)
-    if scan is None:
-        return jsonify({'success': False, 'error': 'no-such-scan'})
-    since = 0
-    if 'token' in request.args:
-        since = parse_token(request.args['token'][0])
-    results = scan.results(since=since)
-    return jsonify({ 'success': True,
-                     'scan': results,
-                     'token': generate_token(since, results['sessions']) })
+class ScanResultsHandler(cyclone.web.RequestHandler):
+
+    def _parse_token(self, token):
+        return int(base64.b64decode(token))
+    
+    def _all_sessions_done(self, sessions):
+        for session in sessions:
+            if session['state'] in ('CREATED', 'STARTED'):
+                return False
+        return True
+
+    def _generate_token(self, since, sessions):
+        if not self._all_sessions_done(sessions):
+            max_time = since
+            for session in sessions:
+                issues = []
+                for i in session['issues']:
+                    if i['_time'] > max_time:
+                        max_time = i['_time']
+            return base64.b64encode(str(max_time))
+
+    def get(self, scan_id):
+
+        scan = SCANS.get(scan_id)
+        if scan is None:
+            self.finish({'success': False, 'error': 'no-such-scan'})
+            return
+
+        since = 0
+        token = self.get_argument('token', None)
+        if token:
+            since = self._parse_token(token)
+        results = scan.results(since=since)
+        self.finish({ 'success': True,
+                      'scan': results,
+                      'token': self._generate_token(since, results['sessions']) })
+
+
+class TaskEngineApplication(cyclone.web.Application):
+
+    def __init__(self, database):
+
+        self.database = database
+
+        handlers = [
+            (r"/plans", PlansHandler),
+            (r"/plan/(.+)", PlanHandler),
+            (r"/scan/create/(.+)", CreateScanHandler),
+            (r"/scan/(.+)/state", ChangeScanStateHandler),
+            (r"/scan/(.+)/results", ScanResultsHandler),
+            (r"/scan/(.+)", ScanHandler),
+        ]
+
+        settings = dict(
+            debug=True,
+            template_path="./template",
+            repository_path="./uploaded_files",
+        )
+
+        cyclone.web.Application.__init__(self, handlers, **settings)
+
 
 if __name__ == "__main__":
 
-    parser = optparse.OptionParser()
-    parser.add_option("--debug", action="store_true")
-    parser.add_option("--address", default="127.0.0.1")
-    parser.add_option("--port", default=8282, type="int")
+    observer = log.PythonLoggingObserver()
+    observer.start()
+    log.startLogging(sys.stdout)
 
-    parser.add_option("--database-type", default="memory")
-    parser.add_option("--database-location")
+    database = MemoryScanDatabase()
+    application = TaskEngineApplication(database)
+    reactor.listenTCP(8282, application, interface="0.0.0.0")
+    reactor.run()
 
-    (options, args) = parser.parse_args()
-
-    level = logging.DEBUG if options.debug else logging.INFO
-    logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
-    logging.info("Starting task-engine on %s:%d" % (options.address,options.port));
-
-    if options.database_type == "memory":
-        DATABASE = MemoryScanDatabase()
-    elif options.database_type == "file":
-        DATABASE = FileScanDatabase(options.database_location)
-    else:
-        logging.error("Unknown database type '%s'" % options.database_type)
-        sys.exit(1)
-
-    klein.run(options.address, options.port)
+# if __name__ == "__mainxxx__":
+#
+#     parser = optparse.OptionParser()
+#     parser.add_option("--debug", action="store_true")
+#     parser.add_option("--address", default="127.0.0.1")
+#     parser.add_option("--port", default=8282, type="int")
+#
+#     parser.add_option("--database-type", default="memory")
+#     parser.add_option("--database-location")
+#
+#     (options, args) = parser.parse_args()
+#
+#     level = logging.DEBUG if options.debug else logging.INFO
+#     logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
+#     logging.info("Starting task-engine on %s:%d" % (options.address,options.port));
+#
+#     if options.database_type == "memory":
+#         DATABASE = MemoryScanDatabase()
+#     elif options.database_type == "file":
+#         DATABASE = FileScanDatabase(options.database_location)
+#     else:
+#         logging.error("Unknown database type '%s'" % options.database_type)
+#         sys.exit(1)
+#
+#     klein.run(options.address, options.port)
