@@ -6,6 +6,7 @@
 import logging
 import os
 import random
+import tempfile
 import time
 
 from twisted.internet import reactor
@@ -35,10 +36,12 @@ class ZAPPlugin(ExternalProcessPlugin):
         logging.debug("ZAPPlugin.do_start")
         # Start ZAP in daemon mode
         self.zap_port = self._random_port()
-        args = ['-daemon', '-port', str(self.zap_port)]
+        self.zap_dir = tempfile.gettempdir() + '/zap_' + str(self.zap_port)
+        args = ['-daemon', '-port', str(self.zap_port), '-dir', self.zap_dir]
         self.spawn(self.zap_path, args)
+        self.callbacks.report_files([{'id' : 'zaplog', 'name' : 'ZAP log file', 'location' : self.zap_dir + '/zap.log'}])
+        
         # Start the main code in a thread
-        self.callbacks.report_files(['zap.log'])
         return deferToThread(self._blocking_zap_main)
         
     def _random_port(self):

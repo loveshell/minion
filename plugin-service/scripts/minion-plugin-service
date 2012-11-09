@@ -167,6 +167,22 @@ def get_session_results(request, session_id):
                     'session': session.summary(),
                     'issues': session.results})
 
+@route('/session/<string:session_id>/file/<string:file_id>', methods=['GET'])
+def get_session_file(request, session_id, file_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    for file in session.files:
+        if file['id'] == file_id:
+            # Return the file contents
+            try:
+                return open(file['location'], 'r').read()
+            except Exception as e:
+                logging.error("Failed to access file %s: %s" % (file['location'],str(e)))
+                return jsonify({'success': False, 'error': 'failed-to-read-file'})
+
+    return jsonify({'success': False, 'error': 'no-such-file'})
+
 #
 # This is the REST API that the plugin-runners talk to. These methods only
 # accept connections coming from localhost and need to be authenticated
@@ -280,7 +296,7 @@ if __name__ == "__main__":
     try:
         from minion.plugins.zap_plugin import ZAPPlugin
         PLUGINS["minion.plugins.zap_plugin.ZAPPlugin"] = ZAPPlugin
-    except Exception as e:
+    except:
         pass
 
     for plugin_name in sorted(PLUGINS.keys()):
