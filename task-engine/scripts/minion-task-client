@@ -24,21 +24,35 @@ if __name__ == "__main__":
    create_response = r.json
 
    if create_response['success']:
-      r = requests.post(task_engine_url + "/scan/" + create_response['scan']['id'] + "/state", 'START')
+
+      url = task_engine_url + "/scan/" + create_response['scan']['id'] + "/state"
+      print "START REQUEST", url
+      r = requests.post(url, 'START')
       r.raise_for_status()
-      print "START RESPONSE", r.text
+      #print "START RESPONSE", r.text
       start_response = r.json
 
       if start_response['success']:
+
+         token = None
          while True:
-            r = requests.get(task_engine_url + "/scan/" + create_response['scan']['id'])
+
+            url = task_engine_url + "/scan/" + create_response['scan']['id'] + "/results"
+            if token: url += "?token=" + token
+            print "RESULTS REQUEST", url
+            r = requests.get(url)
             r.raise_for_status()
             print "STATUS RESPONSE", r.text
-            status_response = r.json
-            if status_response['scan']['state'] != 'STARTED':
-               break
-            time.sleep(1)
+            results_response = r.json
 
-         r = requests.get(task_engine_url + "/scan/" + create_response['scan']['id'] + "/results")
-         r.raise_for_status()
-         print "RESULTS", r.text
+            for session in results_response['scan']['sessions']:
+               if len(session['issues']) > 0:
+                  print "GOT ISSUES", session['issues']
+
+            token = results_response['token']
+            print "TOKEN", token
+            if token is None:
+               print "Token is null, so we are good"
+               break
+
+            time.sleep(1)
