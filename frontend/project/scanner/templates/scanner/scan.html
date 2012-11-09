@@ -107,7 +107,7 @@
                 var num_medium_risk = 0;
                 var num_low_risk = 0;
                 var since_token = ""
-                var looping_interval = setInterval(queryUpdate, 1000);
+                var looping_interval = setInterval(queryUpdate, 2000);
                 
                 function queryUpdate() {
                     $.post("/en-US/xhr_scan_status/", {
@@ -139,7 +139,7 @@
                             
                             //Update progress bars
                             var div_id = result['id'];
-                            var progress = parseInt(result['progress']) || 0;
+                            var progress = parseInt(result['progress']['percentage']) || 0;
                             
                             if(result['state'] === "FAILED") {
                                 $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
