@@ -72,6 +72,7 @@ class PluginSession:
         self.results = []
         self.errors = []
         self.progress = None
+        self.files = []
         
     def start(self):
         logging.debug("PluginSession %s %s start()" % (self.id, self.plugin_name))
@@ -98,6 +99,7 @@ class PluginSession:
                  'progress': self.progress,
                  'started': self.started,
                  'issues': [],
+                 'files' : self.files,
                  'duration': self.duration if self.duration else int(time.time()) - self.started }
 
 #
@@ -200,6 +202,16 @@ def report_results(request, session_id):
     for result in results:
         result['_time'] = int(time.time() * 1000)
     session.results += results
+    return "{}"
+
+@route('/session/<string:session_id>/report/files', methods=['POST'])
+def report_files(request, session_id):
+    session = SESSIONS.get(session_id)
+    if not session:
+        return jsonify({'success': False, 'error': 'no-such-session'})
+    files = json.load(request.content)
+    logging.debug("Received files from plugin session %s: %s" % (session,str(files)))
+    session.files += files
     return "{}"
 
 @route('/session/<string:session_id>/report/errors', methods=['POST'])

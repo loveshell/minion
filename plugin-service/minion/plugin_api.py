@@ -26,10 +26,12 @@ class IPluginRunnerCallbacks(zope.interface.Interface):
         """Plugin has results to report."""
     def report_errors(errors):
         """Plugin has errors to report."""
+    def report_files(files):
+        """Plugin has files available."""
     def report_finish():
         """Plugin is done"""
     def report_abort(exit_code = 1):
-        """Signal the plugin container that we need to abort. Process wil exit."""
+        """Signal the plugin container that we need to abort. Process will exit."""
 
 
 class IPlugin(zope.interface.Interface):
@@ -94,6 +96,9 @@ class AbstractPlugin:
 
     def report_errors(self, errors):
         self.callbacks.report_errors(errors)
+
+    def report_files(self, files):
+        self.callbacks.report_files(files)
 
     def report_abort(self, exit_code = 1):
         self.callbacks.report_abort(exit_code)

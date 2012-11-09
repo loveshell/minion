@@ -38,6 +38,7 @@ class ZAPPlugin(ExternalProcessPlugin):
         args = ['-daemon', '-port', str(self.zap_port)]
         self.spawn(self.zap_path, args)
         # Start the main code in a thread
+        self.callbacks.report_files(['zap.log'])
         return deferToThread(self._blocking_zap_main)
         
     def _random_port(self):
