@@ -19,7 +19,7 @@
         {% if finished %}
         <span class="label label-info">Scan is finished running.</span>
         {% else %}
-            <img id="scanning_gif" src="{{ static('scanner/img/scanning.gif') }}"/><span class="label label-info">Scan is currently running...</span>
+            <img id="scanning_gif" src="{{ static('scanner/img/scanning.gif') }}"/><span id="scan_status_label" class="label label-info">Scan is currently running...</span>
         {% endif %}
         <br/><br/>
         <div id="errors_warnings">
@@ -171,6 +171,7 @@
                         if(since_token === null) {
                             clearInterval(looping_interval);
                             $("#scanning_gif").hide();
+                            $("#scan_status_label").text("Scan is finished running.");
                         }
                     });
                 }
