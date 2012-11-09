@@ -7,7 +7,7 @@ INSTALL=env/bin/pip install --quiet
 all: build
 
 setup:
-	$(VIRTUALENV) env
+	$(VIRTUALENV) --no-site-packages env
 	# These are not in PyPi
 	(cd dependencies/klein && ../../env/bin/python setup.py install)
 	(cd dependencies/garmr && ../../env/bin/python setup.py install)
