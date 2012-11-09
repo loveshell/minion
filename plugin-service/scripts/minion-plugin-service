@@ -281,7 +281,6 @@ if __name__ == "__main__":
         from minion.plugins.zap_plugin import ZAPPlugin
         PLUGINS["minion.plugins.zap_plugin.ZAPPlugin"] = ZAPPlugin
     except Exception as e:
-        logging.info("SBSB Failed " + str(e))
         pass
 
     for plugin_name in sorted(PLUGINS.keys()):
