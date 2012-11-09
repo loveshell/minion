@@ -92,7 +92,7 @@ def scan(request, template=None, scan_id="0"):
                         num_high += 1;
                     elif issue['Severity'] == "Medium":
                         num_med += 1;
-                    elif issue['Severity'] == "Medium" or issue['Severity'] == "Informational":
+                    elif issue['Severity'] == "Low" or issue['Severity'] == "Informational":
                         num_low += 1;
             
             data = {"finished":"finished","results":first_results_json['scan'],"num_high":num_high,"num_med":num_med,"num_low":num_low}
