@@ -117,6 +117,14 @@ body {
     cursor: pointer;
 }
 
+.table-results {
+    cursor: pointer;
+}
+
+.table-results:hover {
+    background-color: #F9F9F9;
+}
+
 /* MYSCANS PAGE */
 .myscan_table_url {
     max-width: 150px;

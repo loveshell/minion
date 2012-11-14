@@ -96,36 +96,85 @@
         {% endif %}
         
         <h2>Detailed Results</h2>
+        <script src="{{ static('scanner/js/table_results_expand.js') }}"></script>
         <h3 id="high_risk_results">High Risk</h3>
-                <ul id="high_risk_results_ul">
-                    {% for session in results.sessions %}
-                        {% for issue in session.issues%}
-                            {% if issue['Severity'] == "High" %}
-                                <li>{{issue['Summary']}}</li>
-                            {% endif %}
-                        {% endfor %}
-                    {% endfor %}
-                </ul>
+        
+        {% for session in results.sessions %}
+            {% for issue in session.issues%}
+                {% if issue['Severity'] == "High" %}
+                    <table class="table table-bordered table-results">
+                        <thead class="results_table_expander">
+                            <tr>
+                                <th>
+                                    <span class="plus_minus">+</span> {{issue['Summary']}}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="results_table_area">
+                            {% for key in issue %}
+                                <tr>
+                                    <td>{{key}}</td>
+                                    <td>{{issue[key]}}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+        
         <h3 id="medium_risk_results">Medium Risk</h3>
-                <ul id="medium_risk_results_ul">
-                    {% for session in results.sessions %}
-                        {% for issue in session.issues%}
-                            {% if issue['Severity'] == "Medium" %}
-                                <li>{{issue['Summary']}}</li>
-                            {% endif %}
-                        {% endfor %}
-                    {% endfor %}
-                </ul>
+        
+        {% for session in results.sessions %}
+            {% for issue in session.issues%}
+                {% if issue['Severity'] == "Medium" %}
+                    <table class="table table-bordered table-results">
+                        <thead class="results_table_expander">
+                            <tr>
+                                <th>
+                                    <span class="plus_minus">+</span> {{issue['Summary']}}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="results_table_area">
+                            {% for key in issue %}
+                                <tr>
+                                    <td>{{key}}</td>
+                                    <td>{{issue[key]}}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+
         <h3 id="low_risk_results">Low Risk / Informational</h3>
-                <ul id="low_risk_results_ul">
-                    {% for session in results.sessions %}
-                        {% for issue in session.issues%}
-                            {% if issue['Severity'] == "Low" or issue['Severity'] == "Informational" or issue['Severity'] == "Info"%}
-                                <li>{{issue['Summary']}}</li>
-                            {% endif %}
-                        {% endfor %}
-                    {% endfor %}
-                </ul>
+        
+        {% for session in results.sessions %}
+            {% for issue in session.issues%}
+                {% if issue['Severity'] == "Low" or issue['Severity'] == "Informational" or issue['Severity'] == "Info"%}
+                    <table class="table table-bordered table-results">
+                        <thead class="results_table_expander">
+                            <tr>
+                                <th>
+                                    <span class="plus_minus">+</span> {{issue['Summary']}}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="results_table_area">
+                            {% for key in issue %}
+                                <tr>
+                                    <td>{{key}}</td>
+                                    <td>{{issue[key]}}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+                
         {% if not finished %}
             <script type="text/javascript">
                 var num_high_risk = 0;
@@ -209,15 +258,4 @@
 
 {% block footer %}
     
-{% endblock %}
-
-{% block site_js %}
-    {% compress js %}
-    <script src="{{ static('scanner/js/libs/jquery-1.8.2.min.js') }}"></script>
-    <script src="{{ static('scanner/js/libs/jquery.cookie.js') }}"></script>
-    <script src="{{ static('scanner/js/init.js') }}"></script>
-    {% endcompress %}
-    {% if not request.user.is_active %}
-        {{ browserid_form.media }}
-    {% endif %}
 {% endblock %}
