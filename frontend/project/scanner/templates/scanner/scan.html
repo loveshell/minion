@@ -98,159 +98,93 @@
         <h2>Detailed Results</h2>
         <script src="{{ static('scanner/js/table_results_expand.js') }}"></script>
         <h3 id="high_risk_results">High Risk</h3>
-        
-        {% for session in results.sessions %}
-            {% for issue in session.issues%}
-                {% if issue['Severity'] == "High" %}
-                    <table class="table table-bordered table-results">
-                        <thead class="results_table_expander">
-                            <tr>
-                                <th>
-                                    <span class="plus_minus">+</span> {{issue['Summary']}}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="results_table_area">
-                            {% for key in issue %}
+        <div id="high_risk_results_div">
+            {% for session in results.sessions %}
+                {% for issue in session.issues%}
+                    {% if issue['Severity'] == "High" %}
+                        <table class="table table-bordered table-results">
+                            <thead class="results_table_expander">
                                 <tr>
-                                    <td>{{key}}</td>
-                                    <td>{{issue[key]}}</td>
+                                    <th>
+                                        <span class="plus_minus">+</span> {{issue['Summary']}}
+                                    </th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% endif %}
+                            </thead>
+                            <tbody class="results_table_area">
+                                {% for key in issue %}
+                                    <tr>
+                                        <td>{{key}}</td>
+                                        <td>{{issue[key]}}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
+        </div>
         
         <h3 id="medium_risk_results">Medium Risk</h3>
         
-        {% for session in results.sessions %}
-            {% for issue in session.issues%}
-                {% if issue['Severity'] == "Medium" %}
-                    <table class="table table-bordered table-results">
-                        <thead class="results_table_expander">
-                            <tr>
-                                <th>
-                                    <span class="plus_minus">+</span> {{issue['Summary']}}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="results_table_area">
-                            {% for key in issue %}
+        <div id="medium_risk_results_div">
+            {% for session in results.sessions %}
+                {% for issue in session.issues%}
+                    {% if issue['Severity'] == "Medium" %}
+                        <table class="table table-bordered table-results">
+                            <thead class="results_table_expander">
                                 <tr>
-                                    <td>{{key}}</td>
-                                    <td>{{issue[key]}}</td>
+                                    <th>
+                                        <span class="plus_minus">+</span> {{issue['Summary']}}
+                                    </th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% endif %}
+                            </thead>
+                            <tbody class="results_table_area">
+                                {% for key in issue %}
+                                    <tr>
+                                        <td>{{key}}</td>
+                                        <td>{{issue[key]}}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
+        </div>
 
         <h3 id="low_risk_results">Low Risk / Informational</h3>
         
-        {% for session in results.sessions %}
-            {% for issue in session.issues%}
-                {% if issue['Severity'] == "Low" or issue['Severity'] == "Informational" or issue['Severity'] == "Info"%}
-                    <table class="table table-bordered table-results">
-                        <thead class="results_table_expander">
-                            <tr>
-                                <th>
-                                    <span class="plus_minus">+</span> {{issue['Summary']}}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="results_table_area">
-                            {% for key in issue %}
+        <div id="low_risk_results_div">
+            {% for session in results.sessions %}
+                {% for issue in session.issues%}
+                    {% if issue['Severity'] == "Low" or issue['Severity'] == "Informational" or issue['Severity'] == "Info"%}
+                        <table class="table table-bordered table-results">
+                            <thead class="results_table_expander">
                                 <tr>
-                                    <td>{{key}}</td>
-                                    <td>{{issue[key]}}</td>
+                                    <th>
+                                        <span class="plus_minus">+</span> {{issue['Summary']}}
+                                    </th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% endif %}
+                            </thead>
+                            <tbody class="results_table_area">
+                                {% for key in issue %}
+                                    <tr>
+                                        <td>{{key}}</td>
+                                        <td>{{issue[key]}}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
+        </div>
                 
         {% if not finished %}
             <script type="text/javascript">
-                var num_high_risk = 0;
-                var num_medium_risk = 0;
-                var num_low_risk = 0;
-                var since_token = ""
-                var looping_interval = setInterval(queryUpdate, 2000);
-                
-                function queryUpdate() {
-                    $.post("/en-US/xhr_scan_status/", {
-                        "scan_id":"{{results['id']}}",
-                        "token":since_token
-                    },
-                    function(data) {
-                        var json_data = jQuery.parseJSON(data);
-                        var added_overall_progress = 0;
-                        var num_plugins = 0;    //Use this to divide and get average progress
-                        
-                        $.each(json_data.scan.sessions, function(i, result) {
-                            $("#debug_results").val($("#debug_results").val() + "\n\nDEBUG:\n" + JSON.stringify(result));
-                            
-                            //Loop through each of the issues associated with the current plugin
-                            $.each(result.issues, function(i, issue) {
-                                $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
-                                if(issue['Severity'] === "High") {
-                                    num_high_risk += 1;
-                                    $("#high_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                                } else if(issue['Severity'] === "Medium") {
-                                    num_medium_risk += 1;
-                                    $("#medium_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                                } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Low" || issue['Severity'] === "Info") {
-                                    num_low_risk += 1;
-                                    $("#low_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                                }
-                            });
-                            
-                            //Update progress bars
-                            var div_id = result['id'];
-                            //Try catch in case null is returned for progress in plugins that don't support percentage
-                            try {
-                                var progress = parseInt(result['progress']) || 0;
-                            } catch (err) {
-                                var progress = 0;
-                            }
-                            
-                            if(result['state'] === "FAILED") {
-                                $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
-                                progress = 100;
-                            } else if(result['state'] === "FINISHED") {
-                                progress = 100;
-                            }
-                            
-                            added_overall_progress += progress;
-                            num_plugins += 1;
-                            
-                            $("#" + div_id).css("width", progress.toString() + "%");
-                        });
-                        
-                        var avg_overall_progress = added_overall_progress / num_plugins;
-                        $("#overall_progress").css("width", avg_overall_progress.toString() + "%");
-                        
-                        //Update risk counters
-                        $("#num_high_risk").text(num_high_risk.toString());
-                        $("#num_medium_risk").text(num_medium_risk.toString());
-                        $("#num_low_risk").text(num_low_risk.toString());
-                        
-                        since_token = json_data["token"];
-                        if(since_token === null) {
-                            clearInterval(looping_interval);
-                            $("#scanning_gif").hide();
-                            $("#scan_status_label").text("Scan is finished running.");
-                        }
-                    });
-                }
-                
+                var scan_id = "{{results['id']}}";
             </script>
+            <script src="{{ static('scanner/js/live_results_update.js') }}"></script>
         {% endif %}
     {% endif %}
 
