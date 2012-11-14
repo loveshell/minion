@@ -17,6 +17,7 @@
             {% if error_retry %}
                 <div class="alert alert-error"><strong>Error</strong><br/>{{ error_retry }}</div>
             {% endif %}
+            <script src="{{ static('scanner/js/new_scan_expand.js') }}"></script>
             <form class="form-horizontal well" method="POST" action="">
                 <div id="new_scan_enter_url">
                     <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/>
@@ -32,8 +33,24 @@
                     <button type="submit" class="btn btn-primary">Start Scan</button>
                 </div>
                 <div id="new_scan_advanced_options">
-                    <div id="new_scan_advanced_options_expander">
-                        Additional Options (coming soon!)
+                    <div id="">
+                        <div id="new_scan_advanced_options_expander"><a href="#">Additional Options</a></div>
+                        <div id="new_scan_advanced_options_hidden">
+                            <div class="control-group">
+                                <label class="control-label" for="input01">Session Cookie Name</label>
+                                <div class="controls">
+                                <input id="input01" class="input-xlarge" type="text">
+                                <p class="help-block">The name of the session cookie used to manage user sessions.</p>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label" for="input01">Session Cookie Value</label>
+                                <div class="controls">
+                                <input id="input01" class="input-xlarge" type="text">
+                                
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">

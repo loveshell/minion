@@ -73,10 +73,11 @@ body {
 #new_scan_advanced_options_expander {
     margin-top: 40px;
     font-size: small;
-    background: url('../img/icon_expand.gif');
-    background-repeat: no-repeat;
     padding-left: 15px;
+    cursor: pointer;
 }
+
+
 
 #updating_results {
     width: 100%;

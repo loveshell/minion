@@ -95,7 +95,7 @@
                 <ul id="low_risk_results_ul">
                     {% for session in results.sessions %}
                         {% for issue in session.issues%}
-                            {% if issue['Severity'] == "Low" or issue['Severity'] == "Informational" %}
+                            {% if issue['Severity'] == "Low" or issue['Severity'] == "Informational" or issue['Severity'] == "Info"%}
                                 <li>{{issue['Summary']}}</li>
                             {% endif %}
                         {% endfor %}
@@ -131,7 +131,7 @@
                                 } else if(issue['Severity'] === "Medium") {
                                     num_medium_risk += 1;
                                     $("#medium_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
-                                } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Low") {
+                                } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Low" || issue['Severity'] === "Info") {
                                     num_low_risk += 1;
                                     $("#low_risk_results_ul").append("<li>" + issue['Summary'] + "</li>");
                                 }
