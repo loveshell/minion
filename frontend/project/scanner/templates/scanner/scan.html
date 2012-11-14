@@ -16,12 +16,6 @@
         <div class="alert alert-error"><strong>Error</strong><br/>{{ error }}</div>
     {% else %}
         <h2>Overview</h2>
-        {% if finished %}
-        <span class="label label-info">Scan is finished running.</span>
-        {% else %}
-            <img id="scanning_gif" src="{{ static('scanner/img/scanning.gif') }}"/><span id="scan_status_label" class="label label-info">Scan is currently running...</span>
-        {% endif %}
-        <br/><br/>
         <div id="errors_warnings">
             <span class="risk_boxes">
             <div id="high_risk" class="alert alert-error alert-block">
@@ -40,29 +34,60 @@
         </div>
         <br style="clear: both;"/>
         {% if not finished %}
-            Overall Progress
-            <div class="progress progress-info progress-striped">
-                <div id="overall_progress" class="bar" style="width: 0%;"></div>
+            <script src="{{ static('scanner/js/plugin_results_expand.js') }}"></script>
+            <div id="overall_plugin_results_expander">
+                Overall Progress (click to see progress of individual plugins)
+                <div class="progress progress-info progress-striped">
+                    <div id="overall_progress" class="bar" style="width: 0%;"></div>
+                </div>
             </div>
-        {% endif %}
-        <h2>Details</h2>
-        <p>Now scanning: {{results['configuration']['target']}}
-        <br/>Plan Selected: {{results['plan']['name']}}
-        <br/>Scan ID: {{results['id']}}
-        <br/>Time Started: </p>
-        
-        {% if not finished %}
-            <h2>Plugin Status</h2>
-            <div id="results_area">
+            <div id="plugin_results_area">
                 {% for session in results['sessions'] %}
+                    {{session.plugin_name}}
                     <div class="plugin_result">
-                        {{session.plugin_name}}
                         <div id="{{session.id}}_prog" class="progress progress-info progress-striped">
                             <div id="{{session.id}}" class="bar" style="width: 0%;"></div>
                         </div>
                     </div>
                 {% endfor %}
             </div>
+        {% endif %}
+        <h2>Details</h2>
+        <table class="table table-bordered table-striped">
+            <tbody>
+                <tr>
+                    <th>Current Status:</th>
+                    <td>
+                        {% if finished %}
+                        Scan is finished running.
+                        {% else %}
+                            <img id="scanning_gif" src="{{ static('scanner/img/scanning.gif') }}" height="20px" width="20px" /><span id="scan_status_label"> Scan is currently running...</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>URL Scanned:</th>
+                    <td>{{results['configuration']['target']}}</td>
+                </tr>
+                <tr>
+                    <th>Plan Selected:</th>
+                    <td>{{results['plan']['name']}}</td>
+                </tr>
+                <tr>
+                    <th>Scan ID:</th>
+                    <td>{{results['id']}}</td>
+                </tr>
+                <tr>
+                    <th>Time Started</th>
+                    <td>
+                        
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        {% if not finished %}
+            
         {% endif %}
         
         {% if not finished %}

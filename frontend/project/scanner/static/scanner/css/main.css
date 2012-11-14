@@ -77,7 +77,9 @@ body {
     cursor: pointer;
 }
 
-
+#plugin_results_area {
+    padding-left: 50px;
+}
 
 #updating_results {
     width: 100%;
@@ -109,6 +111,10 @@ body {
 #low_risk {
     width: 200px;
     float: left;
+}
+
+#overall_plugin_results_expander {
+    cursor: pointer;
 }
 
 /* MYSCANS PAGE */
