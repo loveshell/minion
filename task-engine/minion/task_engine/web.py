@@ -208,11 +208,11 @@ class TaskEngineApplication(cyclone.web.Application):
 
         handlers = [
             (r"/plans", PlansHandler),
-            (r"/plan/(.+)", PlanHandler),
-            (r"/scan/create/(.+)", CreateScanHandler),
-            (r"/scan/(.+)/state", ChangeScanStateHandler),
-            (r"/scan/(.+)/results", ScanResultsHandler),
-            (r"/scan/(.+)", ScanHandler),
+            (r"/plan/([a-z0-9_-]+)", PlanHandler),
+            (r"/scan/create/([a-z0-9_-]+)", CreateScanHandler),
+            (r"/scan/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/state", ChangeScanStateHandler),
+            (r"/scan/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/results", ScanResultsHandler),
+            (r"/scan/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", ScanHandler),
         ]
 
         settings = dict(
