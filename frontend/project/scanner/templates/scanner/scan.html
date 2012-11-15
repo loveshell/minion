@@ -17,22 +17,35 @@
     {% else %}
         <h2>Overview</h2>
         <div id="errors_warnings">
-            <span class="risk_boxes">
-            <div id="high_risk" class="alert alert-error alert-block">
-                <a href="#high_risk_results"><span class="warning_text" id="num_high_risk">{{num_high}}</span><br/>
-                High Risk</a>
-            </div>
-            <div id="medium_risk" class="alert alert-block">
-                <a href="#medium_risk_results"><span class="warning_text" id="num_medium_risk">{{num_med}}</span><br/>
-                Medium Risk</a>
-            </div>
-            <div id="low_risk" class="alert alert-info alert-block">
-                <a href="#low_risk_results"><span class="warning_text" id="num_low_risk">{{num_low}}</span><br/>
-                Low Risk / Informational</a>
-            </div>
-            </span>
+            <table class="table table-risk-counters">
+                <tr>
+                    <td>
+                        <div class="alert alert-block alert-high">
+                            <span class="warning_text" id="num_high_risk">{{num_high}}</span><br/>
+                            High Risk
+                        </div>
+                    </td>
+                    <td>
+                        <div class="alert alert-block alert-medium">
+                            <span class="warning_text" id="num_high_risk">{{num_med}}</span><br/>
+                            Medium Risk
+                        </div>
+                    </td>
+                    <td>
+                        <div class="alert alert-block alert-low">
+                            <span class="warning_text" id="num_high_risk">{{num_low}}</span><br/>
+                            Low Risk
+                        </div>
+                    </td>
+                    <td>
+                        <div class="alert alert-block alert-informational">
+                            <span class="warning_text" id="num_high_risk">{{num_info}}</span><br/>
+                            Informational
+                        </div>
+                    </td>
+                </tr>
+            </table>
         </div>
-        <br style="clear: both;"/>
         {% if not finished %}
             <script src="{{ static('scanner/js/plugin_results_expand.js') }}"></script>
             <div id="overall_plugin_results_expander">
@@ -86,99 +99,48 @@
             </tbody>
         </table>
         
-        {% if not finished %}
-            
-        {% endif %}
-        
-        {% if not finished %}
-            <h2>Live Results</h2>
-            <textarea id="updating_results"></textarea>
-        {% endif %}
-        
         <h2>Detailed Results</h2>
         <script src="{{ static('scanner/js/table_results_expand.js') }}"></script>
-        <h3 id="high_risk_results">High Risk</h3>
-        <div id="high_risk_results_div">
-            {% for session in results.sessions %}
-                {% for issue in session.issues%}
-                    {% if issue['Severity'] == "High" %}
-                        <table class="table table-bordered table-results">
-                            <thead class="results_table_expander">
-                                <tr>
-                                    <th>
-                                        <span class="plus_minus">+</span> {{issue['Summary']}}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="results_table_area">
-                                {% for key in issue %}
-                                    <tr>
-                                        <td>{{key}}</td>
-                                        <td>{{issue[key]}}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-        </div>
         
-        <h3 id="medium_risk_results">Medium Risk</h3>
-        
-        <div id="medium_risk_results_div">
-            {% for session in results.sessions %}
-                {% for issue in session.issues%}
-                    {% if issue['Severity'] == "Medium" %}
-                        <table class="table table-bordered table-results">
-                            <thead class="results_table_expander">
-                                <tr>
-                                    <th>
-                                        <span class="plus_minus">+</span> {{issue['Summary']}}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="results_table_area">
-                                {% for key in issue %}
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px">Severity</th>
+                    <th style="width: 150px !important;">Plugin Source</th>
+                    <th>Risk Summary</th>
+                </tr>
+            </thead>
+            <tbody id="results_table_tbody">
+                {% for session in results.sessions %}
+                    {% for issue in session.issues%}
+                        <tr>
+                            <td>{{ issue['Severity'] }}</td>
+                            <td>{{session['plugin_name']}}</td>
+                            <td>
+                                <table class="table table-bordered table-results">
+                                <thead class="results_table_expander">
                                     <tr>
-                                        <td>{{key}}</td>
-                                        <td>{{issue[key]}}</td>
+                                        <th>
+                                            <span class="plus_minus">+</span> {{issue['Summary']}}
+                                        </th>
                                     </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% endif %}
+                                </thead>
+                                <tbody class="results_table_area">
+                                    {% for key in issue %}
+                                        <tr>
+                                            <td>{{key}}</td>
+                                            <td>{{issue[key]}}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    {% endfor %}
                 {% endfor %}
-            {% endfor %}
-        </div>
-
-        <h3 id="low_risk_results">Low Risk / Informational</h3>
-        
-        <div id="low_risk_results_div">
-            {% for session in results.sessions %}
-                {% for issue in session.issues%}
-                    {% if issue['Severity'] == "Low" or issue['Severity'] == "Informational" or issue['Severity'] == "Info"%}
-                        <table class="table table-bordered table-results">
-                            <thead class="results_table_expander">
-                                <tr>
-                                    <th>
-                                        <span class="plus_minus">+</span> {{issue['Summary']}}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="results_table_area">
-                                {% for key in issue %}
-                                    <tr>
-                                        <td>{{key}}</td>
-                                        <td>{{issue[key]}}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-        </div>
+                
+            </tbody>
+        </table>
                 
         {% if not finished %}
             <script type="text/javascript">

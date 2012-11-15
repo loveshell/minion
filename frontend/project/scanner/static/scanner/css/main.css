@@ -18,7 +18,7 @@ body {
 .center_1000 {
     margin-left: auto;
     margin-right: auto;
-    width: 1000px;
+    width: 80%;
 }
 
 #main_page {
@@ -91,26 +91,37 @@ body {
     text-align: center;
 }
 
+.table-risk-counters {
+    margin-bottom: 0px !important;
+}
+
+.table-risk-counters tr td {
+    text-align: center;
+    width: 25%;
+    margin-bottom: 0px !important;
+    border: none !important;
+}
+
 .warning_text {
     font-size: 40px;
 }
 
-#high_risk {
-    width: 200px;
-    float: left;
-    margin-left: 100px;
+.alert-high {
+    background-color: #cd0200 !important;
 }
 
-#medium_risk {
-    width: 200px;
-    float: left;
-    margin-left: 30px;
-    margin-right: 30px;
+.alert-medium {
+    background-color: #d47500 !important;
 }
 
-#low_risk {
-    width: 200px;
-    float: left;
+.alert-low {
+    background-color: #FEC901 !important;
+    border: 1px solid #C2A939 !important;
+}
+
+.alert-informational {
+    background-color: #3399f3 !important;
+    border: 1px solid #0D4D6F !important;
 }
 
 #overall_plugin_results_expander {
@@ -119,11 +130,19 @@ body {
 
 .table-results {
     cursor: pointer;
+    margin: 3px !important;
+    background-color: inherit !important;
 }
 
 .table-results:hover {
     background-color: #F9F9F9;
 }
+
+.table-results tbody tr td, .table-results tbody tr th, .table-results thead th {
+    background-color: inherit !important;
+}
+
+
 
 /* MYSCANS PAGE */
 .myscan_table_url {
