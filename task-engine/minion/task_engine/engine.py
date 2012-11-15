@@ -171,15 +171,15 @@ SCAN_DATABASE_CLASSES = { 'files': FileScanDatabase, 'memory': MemoryScanDatabas
 
 class TaskEngineSession:
 
-    def __init__(self, plan, configuration, database):
+    def __init__(self, plan, configuration, database, plugin_service_api):
         self.plan = plan
         self.configuration = configuration
         self.database = database
+        self.plugin_service_api = plugin_service_api
         self.id = str(uuid.uuid4())
         self.state = 'CREATED'
         self.plugin_configurations = []
         self.semaphore = DeferredSemaphore(1)
-        self.plugin_service_api = PLUGIN_SERVICE_API
         self.plugin_sessions = []
 
     #
@@ -314,8 +314,9 @@ class TaskEngineSession:
 
 class TaskEngine:
 
-    def __init__(self, scans_database):
+    def __init__(self, scans_database, plugin_service_api):
         self._scans_database = scans_database
+        self._plugin_service_api = plugin_service_api
         self._sessions = {}
         self._looper = None
 
@@ -330,7 +331,7 @@ class TaskEngine:
     def create_session(self, plan, configuration):
         plan = copy.deepcopy(plan)
         configuration = copy.deepcopy(configuration)
-        scan = TaskEngineSession(plan, configuration, self._scans_database)
+        scan = TaskEngineSession(plan, configuration, self._scans_database, self._plugin_service_api)
         yield scan.create()
         self._sessions[scan.id] = scan
 

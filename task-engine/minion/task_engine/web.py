@@ -158,7 +158,9 @@ class TaskEngineApplication(cyclone.web.Application):
         # Configure our settings. We have basic default settings that just work for development
         # and then override those with what is defined in either ~/.minion/ or /etc/minion/
 
-        task_engine_settings = dict(scan_database_type="memory", scan_database_location=None)
+        task_engine_settings = dict(plugin_service_api="http://127.0.0.1:8181",
+                                    scan_database_type="memory",
+                                    scan_database_location=None)
 
         for settings_path in (TASK_ENGINE_USER_SETTINGS_PATH, TASK_ENGINE_SYSTEM_SETTINGS_PATH):
             settings_path = os.path.expanduser(settings_path)
@@ -187,7 +189,7 @@ class TaskEngineApplication(cyclone.web.Application):
         
         # Create the Task Engine
 
-        self.task_engine = TaskEngine(self.scan_database)
+        self.task_engine = TaskEngine(self.scan_database, task_engine_settings['plugin_service_api'])
 
         # Setup our routes and initialize the Cyclone application
 
