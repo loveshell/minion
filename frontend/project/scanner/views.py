@@ -13,13 +13,13 @@ import logging, bleach, commonware, urllib2, json, time, requests
 
 log = commonware.log.getLogger('playdoh')
 
-@mobile_template('scanner/{mobile/}home.html')
+@mobile_template('scanner/home.html')
 def home(request, template=None):
     """Home main view"""
     data = {}
     return render(request, template, data)
 
-@mobile_template('scanner/{mobile/}newscan.html')
+@mobile_template('scanner/newscan.html')
 def newscan(request, template=None):
     """New scan page, form to enter URL, pick a plan, etc."""
     data = {}
@@ -67,7 +67,7 @@ def newscan(request, template=None):
         data = {"plans":resp_json['plans'], "task_engine_url":settings.TASK_ENGINE_URL}
         return render(request, template, data)
     
-@mobile_template('scanner/{mobile/}myscans.html')
+@mobile_template('scanner/myscans.html')
 def myscans(request, template=None):
     """Page showing all scans by the user"""
     try:
@@ -77,7 +77,7 @@ def myscans(request, template=None):
         data = {"error":"Database could not be reached. Check database connection."}
     return render(request, template, data)
 
-@mobile_template('scanner/{mobile/}scan.html')
+@mobile_template('scanner/scan.html')
 def scan(request, template=None, scan_id="0"):
     try:
         #Retrieve the first set of responses to construct progress bars
@@ -107,7 +107,7 @@ def scan(request, template=None, scan_id="0"):
 
     return render(request, template, data)
 
-@mobile_template('scanner/{mobile/}plans.html')
+@mobile_template('scanner/plans.html')
 def plans(request, template=None):
     """Page showing all plans available"""
     try:
