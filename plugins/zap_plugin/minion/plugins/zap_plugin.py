@@ -49,6 +49,7 @@ class ZAPPlugin(ExternalProcessPlugin):
 
     def _blocking_zap_main(self):
         logging.debug("ZAPPlugin._blocking_zap_main")
+        self.report_progress(15, 'Starting ZAP')
         try:
             self.zap = ZAP(proxies={'http': 'http://127.0.0.1:%d' % self.zap_port, 'https': 'http://127.0.0.1:%d' % self.zap_port})
             target = self.configuration['target']
@@ -67,28 +68,40 @@ class ZAPPlugin(ExternalProcessPlugin):
             time.sleep(2)
             
             logging.info('Spidering target %s' % target)
+            self.report_progress(34, 'Spidering target')
             self.zap.start_spider(target)
             # Give the Spider a chance to start
             time.sleep(2)
-            while (int(self.zap.spider_status[0]) < 100):
-                logging.debug('Spider progress %s' % self.zap.spider_status[0])
-                progress = int(self.zap.spider_status[0]) / 2
+            while True:
+                spider_progress = int(self.zap.spider_status[0])
+                logging.debug('Spider progress %d' % spider_progress)
+                progress = 34 + (spider_progress / 3)
                 self.report_progress(progress, 'Spidering target')
+                if spider_progress == 100:
+                    break
                 time.sleep(5)
-            
+
             logging.debug('Spider completed')
+
+            self.report_progress(67, 'Scanning target')
+
             # Give the passive scanner a chance to finish
             time.sleep(5)
             
             logging.debug('Scanning target %s' % target)
             self.zap.start_scan(target)
             time.sleep(5)
-            while (int(self.zap.scan_status[0]) < 100):
-                logging.debug('Scan progress %s' % self.zap.scan_status[0])
-                progress = 50 + int(self.zap.spider_status[0]) / 2
+            while True:
+                scan_progress = int(self.zap.spider_status[0]) 
+                logging.debug('Scan progress %d' % scan_progress)
+                progress = 67 + (scan_progress / 3)
                 self.report_progress(progress, 'Scanning target')
                 self.report_results(self.get_results())
+                if scan_progress == 100:
+                    break
                 time.sleep(5)
+
+            self.report_progress(100, 'Completing scan')
     
             logging.debug('Scan completed? %s' % self.zap.scan_status[0])
             
