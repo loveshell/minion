@@ -64,30 +64,43 @@ PLANS['scratch'] = {
     ]
 }
 
-# PLANS['stomp'] = {
-#     'name': 'scratch',
-#     'description': 'Run Garmr and do a full port scan using NMAP, then run ZAP.',
-#     'workflow': [
-#         {
-#             'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
-#             'configuration': {
-#                 # No special configuration needed
-#             }
-#         },
-#         {
-#             'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
-#             'configuration': {
-#                 # No special configuration needed
-#             }
-#         },
-#         {
-#             'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
-#             'configuration': {
-#                 # No special configuration needed
-#             }
-#         }
-#     ]
-# }
+PLANS['stomp'] = {
+    'name': 'scratch',
+    'description': 'Run Garmr and do a full port scan using NMAP, then run ZAP.',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        },
+        {
+            'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        },
+        {
+            'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        }
+    ]
+}
+
+PLANS['test'] = {
+    'name': 'test',
+    'description': 'Run the IssueGeneratingPlugin.',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.basic.IssueGeneratingPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        },
+    ]
+}
 
 PLANS['zap'] = {
     'name': 'zap',

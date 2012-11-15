@@ -114,3 +114,15 @@ class IncrementalBlockingPlugin(BlockingPlugin):
             self.report_progress(25*n, description = self.PROGRESS[n-1])
             time.sleep(3)
             self.report_results([{"Summary":"This is issue #" + str(n), "Severity":"Low"}])
+
+class IssueGeneratingPlugin(BlockingPlugin):
+
+    COUNT = 3
+    LEVELS = ['High', 'Medium', 'Low', 'Info']
+
+    def do_run(self):
+        for i in range(self.COUNT):
+            for n in range(len(self.LEVELS)):
+                self.report_results([{"Summary":"This is issue #" + str(n), "Severity":self.LEVELS[n]}])
+                time.sleep(1.5)
+            
