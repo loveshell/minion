@@ -35,7 +35,7 @@
                         <td>{{ scan.scan_plan }}</td>
                         <td><a class="btn btn-info" href="/scan/{{scan.scan_id}}">Results</a></td>
                         <td>
-                            <form style="" method="POST" action="/new">
+                            <form style="margin: 0px !important;" method="POST" action="/en-US/new">
                                 <input name="new_scan_url_input" type="hidden" value="{{ scan.scan_url }}"/>
                                 <input name="plan_selection" type="hidden" value="{{ scan.scan_plan }}"/>
                                 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
