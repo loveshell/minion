@@ -84,7 +84,7 @@ def scan(request, template=None, scan_id="0"):
         first_results = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
         first_results_json = first_results.json
         
-        num_high, num_med, num_low = 0, 0, 0;
+        num_high, num_med, num_low, num_info = 0, 0, 0, 0;
         if first_results_json['scan']['state'] == "FINISHED":
             for session in first_results_json['scan']['sessions']:
                 for issue in session['issues']:
@@ -92,12 +92,14 @@ def scan(request, template=None, scan_id="0"):
                         num_high += 1;
                     elif issue['Severity'] == "Medium":
                         num_med += 1;
-                    elif issue['Severity'] == "Low" or issue['Severity'] == "Informational" or issue['Severity'] == "Info":
+                    elif issue['Severity'] == "Low":
                         num_low += 1;
+                    elif issue['Severity'] == "Informational" or issue['Severity'] == "Info":
+                        num_info += 1;
             
-            data = {"finished":"finished","results":first_results_json['scan'],"num_high":num_high,"num_med":num_med,"num_low":num_low}
+            data = {"finished":"finished","results":first_results_json['scan'],"num_high":num_high,"num_med":num_med,"num_low":num_low, "num_info":num_info}
         else:
-            data = {"results":first_results_json['scan'],"num_high":num_high,"num_med":num_med,"num_low":num_low}
+            data = {"results":first_results_json['scan'],"num_high":num_high,"num_med":num_med,"num_low":num_low,"num_info":num_info}
         
     except:
         data = {"error":"Error retrieving scan information. Check provided id."}

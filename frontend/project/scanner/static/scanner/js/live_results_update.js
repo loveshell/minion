@@ -1,6 +1,7 @@
 var num_high_risk = 0;
 var num_medium_risk = 0;
 var num_low_risk = 0;
+var num_info_risk = 0;
 var since_token = ""
 var looping_interval = setInterval(queryUpdate, 2000);
 
@@ -39,21 +40,25 @@ function queryUpdate() {
         var num_plugins = 0;    //Use this to divide and get average progress
         
         $.each(json_data.scan.sessions, function(i, result) {
-            $("#debug_results").val($("#debug_results").val() + "\n\nDEBUG:\n" + JSON.stringify(result));
             
             //Loop through each of the issues associated with the current plugin
             $.each(result.issues, function(i, issue) {
-                $("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
+                //$("#updating_results").val($("#updating_results").val() + "From Plugin: " + result['plugin_name'] + "\nSeverity: " + issue['Severity'] + "\nSummary: " + issue['Summary'] + "\n\n");
                 if(issue['Severity'] === "High") {
                     num_high_risk += 1;
-                    $("#high_risk_results_div").append(createResultTable(issue));
                 } else if(issue['Severity'] === "Medium") {
                     num_medium_risk += 1;
-                    $("#medium_risk_results_div").append(createResultTable(issue));
-                } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Low" || issue['Severity'] === "Info") {
+                } else if (issue['Severity'] === "Low") {
                     num_low_risk += 1;
-                    $("#low_risk_results_div").append(createResultTable(issue));
+                } else if(issue['Severity'] === "Informational" || issue['Severity'] === "Info") {
+                    num_info_risk += 1;
                 }
+                var tr_to_add = $("<tr></tr>")
+                tr_to_add.append("<td>" + issue['Severity'] + "</td><td>" + result['plugin_name'] + "</td>");
+                var td_to_add = $("<td></td>");
+                td_to_add.append(createResultTable(issue));
+                tr_to_add.append(td_to_add);
+                $("#results_table_tbody").append(tr_to_add);
             });
             
             //Update progress bars
@@ -85,6 +90,7 @@ function queryUpdate() {
         $("#num_high_risk").text(num_high_risk.toString());
         $("#num_medium_risk").text(num_medium_risk.toString());
         $("#num_low_risk").text(num_low_risk.toString());
+        $("#num_info_risk").text(num_info_risk.toString());
         
         since_token = json_data["token"];
         if(since_token === null) {

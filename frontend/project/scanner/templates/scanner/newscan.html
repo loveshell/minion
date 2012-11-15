@@ -20,7 +20,7 @@
             <script src="{{ static('scanner/js/new_scan_expand.js') }}"></script>
             <form class="form-horizontal well" method="POST" action="">
                 <div id="new_scan_enter_url">
-                    <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/>
+                    <input name="new_scan_url_input" id="new_scan_url_input" type="text" placeholder="Enter URL to scan..."/><br/>
                     <select name="plan_selection" id="plan_dropdown">
                         <option>Select a plan...</option>
                         {% for plan in plans %}
