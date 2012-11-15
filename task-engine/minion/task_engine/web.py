@@ -7,6 +7,7 @@ import json
 import os
 import re
 import sys
+import urlparse
 
 import cyclone.web
 from twisted.internet.defer import inlineCallbacks
@@ -39,7 +40,39 @@ class PlanHandler(cyclone.web.RequestHandler):
             self.finish({'success': True, 'plan': plan})
 
 
-class CreateScanHandler(cyclone.web.RequestHandler):
+class CreateScanHandler(cyclone.web.RequestHandler):    
+
+    # This is pretty strict configuration validation where we just accept
+    # configs of the form: { "target": "http://some.site.com" } .. the url
+    # is not allowed to have embedded authentication, a query or a fragment
+    # to avoid abuse of the service.
+
+    ALLOWED_CONFIGURATION_FIELDS = ('target',)
+    
+    def _validate_target(self, url):
+        """Only accept URLs that are basic. No query, fragment or embedded auth allowed"""
+        if not isinstance(url, str) and not isinstance(url, unicode):
+            return False
+        p = urlparse.urlparse(url)
+        if p.scheme not in ('http', 'https'):
+            return False
+        if p.query or p.fragment or p.username or p.password:
+            return False
+        return True
+        
+    def _validate_configuration(self, body):
+        try:
+            cfg = json.loads(body)
+            if not isinstance(cfg, dict):
+                return False,None
+            for key in cfg.keys():
+                if key not in self.ALLOWED_CONFIGURATION_FIELDS:
+                    return False,None
+            if 'target' not in cfg or not self._validate_target(cfg['target']):
+                return False,None
+            return True, cfg
+        except Exception as e:
+            return False, None
 
     @inlineCallbacks
     def put(self, plan_name):
@@ -51,9 +84,12 @@ class CreateScanHandler(cyclone.web.RequestHandler):
             self.finish({'success': False, 'error': 'no-such-plan'})
             return
 
-        configuration = json.loads(self.request.body)
-        session = yield task_engine.create_session(plan, configuration)
+        valid, configuration = self._validate_configuration(self.request.body)
+        if not valid:
+            self.finish({'success': False, 'error': 'invalid-configuration'})
+            return
 
+        session = yield task_engine.create_session(plan, configuration)
         self.finish({ 'success': True, 'scan': session.summary() })
 
 
