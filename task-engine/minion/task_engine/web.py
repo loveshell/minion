@@ -5,6 +5,7 @@
 import base64
 import json
 import os
+import re
 import sys
 
 import cyclone.web
@@ -110,6 +111,15 @@ class ScanHandler(cyclone.web.RequestHandler):
 
 class ScanResultsHandler(cyclone.web.RequestHandler):
 
+    def _validate_token(self, token):
+        try:
+            decoded = base64.b64decode(token)
+            if decoded is None or not re.match(r"^\d+$", decoded):
+                return False
+            return True
+        except Exception as e:
+            return False
+
     def _parse_token(self, token):
         return int(base64.b64decode(token))
     
@@ -144,6 +154,9 @@ class ScanResultsHandler(cyclone.web.RequestHandler):
         since = 0
         token = self.get_argument('token', None)
         if token:
+            if not self._validate_token(token):
+                self.finish({ 'success': False, 'error': 'malformed-token' })
+                return
             since = self._parse_token(token)
             
         scan_results = session.results(since=since)
