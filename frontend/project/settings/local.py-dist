@@ -88,6 +88,7 @@ ACCEPTED_USER_DOMAINS = [
     #example.com
     'mozilla.com',
     'mozilla.org',
+    'mozillafoundation.org',
 ]
 
 #setting to the public IP of your server. This needs to match
