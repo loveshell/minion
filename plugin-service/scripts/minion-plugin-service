@@ -95,7 +95,9 @@ class PluginSession:
         return { 'id': self.id,
                  'state': self.state,
                  'configuration': self.configuration,
-                 'plugin_name': self.plugin_name,
+                 'plugin': { 'name': self.plugin_class.name(),
+                             'version': self.plugin_class.version(),
+                             'class': self.plugin_class.__module__ + "." + self.plugin_class.__name__ },
                  'progress': self.progress,
                  'started': self.started,
                  'issues': [],
@@ -109,9 +111,13 @@ class PluginSession:
 def jsonify(data):
     return json.dumps(data, sort_keys=True, indent=4) + "\n"
 
-@route('/plugins', methods=['GET'])
+@route('/plugins')
 def get_plugins(request):
-    return jsonify({ 'success': True, 'plugins': PLUGINS.keys() })
+    def _plugin_descriptor(plugin):
+        return {'class': plugin.__module__ + "." + plugin.__name__,
+                'name': plugin.name(),
+                'version': plugin.version()}
+    return jsonify({'success': True, 'plugins': map(_plugin_descriptor, PLUGINS.values())})
 
 @route('/sessions', methods=['GET'])
 def get_sessions(request):
@@ -188,14 +194,6 @@ def get_session_file(request, session_id, file_id):
 # accept connections coming from localhost and need to be authenticated
 # through the plugin session id.
 #
-
-@route('/plugins')
-def get_plugins(request):
-    def _plugin_descriptor(plugin):
-        return {'class': plugin.__module__ + "." + plugin.__name__,
-                'name': plugin.name(),
-                'version': plugin.version()}
-    return jsonify({'success': True, 'plugins': map(_plugin_descriptor, PLUGINS.values())})
 
 @route('/session/<string:session_id>/configuration', methods=['GET'])
 def get_configuration(request, session_id):

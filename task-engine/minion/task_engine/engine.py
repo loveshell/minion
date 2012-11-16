@@ -238,13 +238,13 @@ class TaskEngineSession:
             # Now decide what to do based on the session state
             if session['state'] == 'CREATED':
                 # Start this plugin session
-                logging.debug("TaskEngineSession._periodic_session_task - Going to start " + session['plugin_name'])
+                logging.debug("TaskEngineSession._periodic_session_task - Going to start " + session['plugin']['class'])
                 url = self.plugin_service_api + "/session/%s/state" % session['id']
                 result = yield getPage(url.encode('ascii'), method='PUT', postdata='START').addCallback(json.loads)
                 break
             elif session['state'] in ('STARTED', 'FINISHED') and session.get('_done') != True:
                 # If the status is STARTED or FINISHED then collect the results periodically
-                logging.debug("TaskEngineSession._periodic_session_task - Going to get results from " + session['plugin_name'])
+                logging.debug("TaskEngineSession._periodic_session_task - Going to get results from " + session['plugin']['class'])
                 url = self.plugin_service_api + "/session/%s/results" % session['id']
                 result = yield getPage(url.encode('ascii')).addCallback(json.loads)
                 session['issues'] = result['issues']
@@ -330,7 +330,7 @@ class TaskEngineSession:
                 if i['_time'] > since:
                     issues.append(i)
             s = { 'id': session['id'],
-                  'plugin_name': session['plugin_name'],
+                  'plugin': session['plugin'],
                   'state': session['state'],
                   'progress': session['progress'],
                   'issues': issues }

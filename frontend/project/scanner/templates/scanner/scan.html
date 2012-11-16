@@ -56,7 +56,7 @@
             </div>
             <div id="plugin_results_area">
                 {% for session in results['sessions'] %}
-                    {{session.plugin_name}}
+                    {{session.plugin.name}}
                     <div class="plugin_result">
                         <div id="{{session.id}}_prog" class="progress progress-info progress-striped">
                             <div id="{{session.id}}" class="bar" style="width: 0%;"></div>
@@ -130,7 +130,7 @@
                             		{{ issue['Severity'] }}
                             	</div>
                             </td>
-                            <td>{{session['plugin_name']}}</td>
+                            <td>{{session['plugin']['name']}}</td>
                             <td>
                                 <table class="table table-bordered table-results">
                                 <thead class="results_table_expander">
