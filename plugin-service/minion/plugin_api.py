@@ -67,6 +67,14 @@ class AbstractPlugin:
     nothing. This is a good place for standard behaviour, etc.
     """
 
+    @classmethod
+    def name(cls):
+        return getattr(cls, "PLUGIN_NAME", cls.__name__)
+
+    @classmethod
+    def version(cls):
+        return getattr(cls, "PLUGIN_VERSION", "0.0")
+
     zope.interface.implements(IPlugin, IPluginRunnerCallbacks)
     
     # Plugin methods. By default these do nothing.

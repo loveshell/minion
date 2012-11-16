@@ -107,6 +107,9 @@ def services_to_issues(services):
 
 class NMAPPlugin(ExternalProcessPlugin):
 
+    PLUGIN_NAME = "NMAP"
+    PLUGIN_VERSION = "0.1"
+
     NMAP_NAME = "nmap"
 
     def _validate_ports(self, ports):

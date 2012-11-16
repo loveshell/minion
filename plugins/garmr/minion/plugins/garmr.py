@@ -26,6 +26,9 @@ def parse_garmr_xml(xml):
 
 class GarmrPlugin(ExternalProcessPlugin):
 
+    PLUGIN_NAME = "Garmr"
+    PLUGIN_VERSION = "0.1"
+
     GARMR_NAME = "garmr"
     GARMR_ARGS = ['-o', '/dev/stdout', '-u']
 

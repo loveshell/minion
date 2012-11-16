@@ -189,6 +189,14 @@ def get_session_file(request, session_id, file_id):
 # through the plugin session id.
 #
 
+@route('/plugins')
+def get_plugins(request):
+    def _plugin_descriptor(plugin):
+        return {'class': plugin.__module__ + "." + plugin.__name__,
+                'name': plugin.name(),
+                'version': plugin.version()}
+    return jsonify({'success': True, 'plugins': map(_plugin_descriptor, PLUGINS.values())})
+
 @route('/session/<string:session_id>/configuration', methods=['GET'])
 def get_configuration(request, session_id):
     session = SESSIONS.get(session_id)

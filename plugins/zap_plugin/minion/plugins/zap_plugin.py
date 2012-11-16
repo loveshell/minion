@@ -17,6 +17,9 @@ from zap import ZAP
 
 class ZAPPlugin(ExternalProcessPlugin):
 
+    PLUGIN_NAME = "ZAP"
+    PLUGIN_VERSION = "0.1"
+
     ZAP_NAME = "zap.sh"
     
     def do_configure(self):
