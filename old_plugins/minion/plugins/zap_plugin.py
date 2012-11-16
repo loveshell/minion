@@ -52,7 +52,7 @@ class ZapScanThread(threading.Thread):
 			self.zapPlugin.zap.start_scan(self.target)
 			time.sleep(5)
 			while (int(self.zapPlugin.zap.scan_status[0]) < 100):
-				logging.debug('Scan progress %: ' % self.zapPlugin.zap.scan_status[0])
+				logging.debug('Scan progress %s: ' % self.zapPlugin.zap.scan_status[0])
 				time.sleep(5)
 	
 			logging.debug('Scan completed? %s' % self.zapPlugin.zap.scan_status[0])
