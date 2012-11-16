@@ -125,12 +125,8 @@
                 {% for session in results.sessions %}
                     {% for issue in session.issues%}
                         <tr>
-                            <td>
-                            	<div class="alert alert-block alert-{{ issue['Severity'].lower() }}">
-                            		{{ issue['Severity'] }}
-                            	</div>
-                            </td>
-                            <td>{{session['plugin']['name']}}</td>
+                            <td>{{ issue['Severity'] }}</td>
+                            <td>{{session['plugin_name']}}</td>
                             <td>
                                 <table class="table table-bordered table-results">
                                 <thead class="results_table_expander">
