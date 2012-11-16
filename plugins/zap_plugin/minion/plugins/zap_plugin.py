@@ -99,7 +99,6 @@ class ZAPPlugin(ExternalProcessPlugin):
                 logging.debug('Scan progress %d' % scan_progress)
                 progress = 67 + (scan_progress / 3)
                 self.report_progress(progress, 'Scanning target')
-                self.report_results(self.get_results())
                 if scan_progress == 100:
                     break
                 time.sleep(5)
@@ -126,7 +125,8 @@ class ZAPPlugin(ExternalProcessPlugin):
             for issue in issues:
                 # TODO should test other values here as well
                 if alert.get('alert') == issue['Summary']:
-                    issue['URLs'].append(alert.get('url'))
+                    if len(issue['URLs']) < 25:
+                        issue['URLs'].append(alert.get('url'))
                     found = True
                     break
                 if found:
