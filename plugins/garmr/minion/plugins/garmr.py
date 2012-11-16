@@ -3,32 +3,26 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
+import json
 import os
-from xml.etree import ElementTree
 from minion.plugin_api import ExternalProcessPlugin
 
+def _get_test_name(s):
+    return s.split('.')[-1]
 
-def issue_in_results(name, issues):
-    for issue in issues:
-        if issue['Summary'] == name:
-            return True
-
-def parse_garmr_xml(xml):
-    root = ElementTree.fromstring(xml)
-    results = []
-    for testsuite in root.iter('testsuite'):        
-        for testcase in testsuite.iter('testcase'):
-            failure = testcase.find('failure')
-            skipped = testcase.find('skipped')
-            severity = "Info"
-            if failure is not None:
-                severity = "High"
-            elif skipped is not None:
-                severity = "Info"
-            if not issue_in_results(testcase.get('name'), results):
-                results.append({ 'Summary': testcase.get('name'), 'Severity': severity})
-    return results
-
+def parse_garmr_output(output):
+    report = json.loads(output)
+    urls = report.keys()
+    if len(urls) == 1:
+        url = urls[0]
+        for category in report[url].keys():
+            for check,results in report[url][category]['passive'].items():            
+                if results['state'] == 'Fail':
+                    yield {'Summary': "%s/%s Failed" % (_get_test_name(category), _get_test_name(check)),
+                           'Severity': 'High',
+                           'Description': results['message'],
+                           'URLs': [url]}
+    
 
 class GarmrPlugin(ExternalProcessPlugin):
 
@@ -36,7 +30,7 @@ class GarmrPlugin(ExternalProcessPlugin):
     PLUGIN_VERSION = "0.1"
 
     GARMR_NAME = "garmr"
-    GARMR_ARGS = ['-o', '/dev/stdout', '-u']
+    GARMR_ARGS = ['-r', 'json', '-o', '/dev/stdout', '-u']
 
     def do_start(self):
         garmr_path = self.locate_program(self.GARMR_NAME)
@@ -49,5 +43,5 @@ class GarmrPlugin(ExternalProcessPlugin):
         self.output += data
 
     def do_process_ended(self, status):
-        self.callbacks.report_results(parse_garmr_xml(self.output))
+        self.callbacks.report_results(list(parse_garmr_output(self.output)))
         self.callbacks.report_finish()
