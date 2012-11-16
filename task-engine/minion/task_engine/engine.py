@@ -58,6 +58,19 @@ PLANS['nmapfull'] = {
     ]
 }
 
+PLANS['garmr'] = {
+    'name': 'garmr',
+    'description': 'Run just a Garmr scan.',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        }
+    ]
+}
+
 PLANS['scratch'] = {
     'name': 'scratch',
     'description': 'Run Garmr and do a full port scan using NMAP.',
