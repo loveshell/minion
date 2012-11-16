@@ -45,6 +45,19 @@ PLANS['tickle'] = {
     ]
 }
 
+PLANS['nmapfull'] = {
+    'name': 'nmapfull',
+    'description': 'Run just a full portmap scan with NMAP.',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        }
+    ]
+}
+
 PLANS['scratch'] = {
     'name': 'scratch',
     'description': 'Run Garmr and do a full port scan using NMAP.',
@@ -65,7 +78,7 @@ PLANS['scratch'] = {
 }
 
 PLANS['stomp'] = {
-    'name': 'scratch',
+    'name': 'stomp',
     'description': 'Run Garmr and do a full port scan using NMAP, then run ZAP.',
     'workflow': [
         {
