@@ -54,7 +54,7 @@ function queryUpdate() {
                     num_info_risk += 1;
                 }
                 var tr_to_add = $("<tr></tr>")
-                tr_to_add.append("<td>" + issue['Severity'] + "</td><td>" + result['plugin_name'] + "</td>");
+                tr_to_add.append("<td>" + issue['Severity'] + "</td><td>" + result['plugin']['name'] + "</td>");
                 var td_to_add = $("<td></td>");
                 td_to_add.append(createResultTable(issue));
                 tr_to_add.append(td_to_add);
