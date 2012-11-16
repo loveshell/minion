@@ -15,7 +15,7 @@ Also see the following two projects:
 > Note that this is work in progress. The API and responses are likely to change a bit.
 
 Setting up a development environment
------------------------------------
+------------------------------------
 
 Development is best done in a Python Virtualenv. These instructions
 assume you have Python 2.7.x and virtualenv installed.
@@ -69,22 +69,29 @@ locally and that you have `curl` installed.
 To find out what plugins the plugin service instance supports, request
 the `/plugins` resource:
 
-    $ curl http://127
-    curl http://127.0.0.1:8181/plugins
-    {
-        "plugins": [
-            "minion.plugins.basic.AbortedPlugin", 
-            "minion.plugins.basic.DummyPlugin", 
-            "minion.plugins.basic.ExceptionPlugin", 
-            "minion.plugins.basic.FailedPlugin", 
-            "minion.plugins.basic.HSTSPlugin", 
-            "minion.plugins.basic.LongRunningPlugin"
-            "minion.plugins.basic.XFrameOptionsPlugin", 
-            "minion.plugins.garmr.GarmrPlugin", 
-            "minion.plugins.nmap.NMAPPlugin", 
-        ], 
-        "success": true
-    }
+```
+$ curl http://127.0.0.1:8181/plugins
+{
+    "plugins": [
+        {
+            "class": "minion.plugins.garmr.GarmrPlugin", 
+            "name": "Garmr", 
+            "version": "0.1"
+        }, 
+        {
+            "class": "minion.plugins.zap_plugin.ZAPPlugin", 
+            "name": "ZAP", 
+            "version": "0.1"
+        }, 
+        {
+            "class": "minion.plugins.nmap.NMAPPlugin", 
+            "name": "NMAP", 
+            "version": "0.1"
+        }, 
+    ], 
+    "success": true
+}
+```
 
 Note that not all plugins listed above may be installed. If you do not
 see the Garmr and NMAP plugins then you can grab them from Github and
@@ -106,7 +113,7 @@ also list additional settings for the plugin.
 
 Create a file called `configuration.json` and put the following in it:
 
-    { "target": "http://www.yoursite.com" }
+    { "target": "http://some.site" }
 
 Replace `www.yoursite.com` with the name of a web site that you want
 to test against.
@@ -117,20 +124,29 @@ Now we `PUT` the configuration to the API to create a new session for
 the built-in XFrameOptionsPlugin, which checks the presence of the
 X-Frame-Options header.
 
-    $ curl -XPUT -d @configuration.json http://127.0.0.1:8181/session/create/minion.plugins.basic.XFrameOptionsPlugin
-    {
-        "session": {
-            "configuration": {
-                "target": "http://www.yoursite.com"
-            },
-            "duration": 0, 
-            "id": "8ff8f416-eb3c-4a41-a7e9-4c118f59a36b", 
-            "plugin_name": "minion.plugins.basic.XFrameOptionsPlugin", 
-            "started": 1351440007, 
-            "state": "CREATED"
+```
+$ curl -XPUT -d @configuration.json http://127.0.0.1:8181/session/create/minion.plugins.basic.XFrameOptionsPlugin
+{
+    "session": {
+        "configuration": {
+            "target": "http://some.site"
         }, 
-        "success": true
-    }
+        "duration": 0, 
+        "files": [], 
+        "id": "b4ca7f40-18b9-4cf8-8445-cd815150a9b6", 
+        "issues": [], 
+        "plugin": {
+            "class": "minion.plugins.basic.XFrameOptionsPlugin", 
+            "name": "XFrameOptionsPlugin", 
+            "version": "0.0"
+        }, 
+        "progress": null, 
+        "started": 1353090532, 
+        "state": "CREATED"
+    }, 
+    "success": true
+}
+```
 
 All calls to the Plugin Service return JSON dictionaries. The
 `success` field is always present to indicate whether the call was
@@ -141,10 +157,12 @@ succesful.
 To start the session we need to change it's state to `STARTED`. We do
 this with a `PUT` request:
 
-    $ curl -XPUT -d 'START' http://127.0.0.1:8181/session/8ff8f416-eb3c-4a41-a7e9-4c118f59a36b/state        
-    {
-        "success": true
-    }
+```
+$ curl -XPUT -d 'START' http://127.0.0.1:8181/session/b4ca7f40-18b9-4cf8-8445-cd815150a9b6/state
+{
+    "success": true
+}
+```
 
 The result of this will be that the Plugin Service spawns a new
 process, a plugin-runner, in which the specific plugin will
@@ -172,20 +190,28 @@ Python, they execute in the runner process.
 When a plugin is running you can `GET` it's info to see the status and
 find out if and how it finished:
 
-    $ curl -XGET http://127.0.0.1:8181/session/8ff8f416-eb3c-4a41-a7e9-4c118f59a36b
-    {
-        "session": {
-            "configuration": {
-                "target": "http://www.soze.com"
-            }, 
-            "duration": 3, 
-            "id": "8ff8f416-eb3c-4a41-a7e9-4c118f59a36b", 
-            "plugin_name": "minion.plugins.basic.XFrameOptionsPlugin", 
-            "started": 1351440218, 
-            "state": "FINISHED"
+```
+$ curl http://127.0.0.1:8181/session/b4ca7f40-18b9-4cf8-8445-cd815150a9b6
+{
+    "session": {
+        "configuration": {
+            "target": "http://some.site"
         }, 
-        "success": true
-    }
+        "duration": 41, 
+        "files": [], 
+        "id": "b4ca7f40-18b9-4cf8-8445-cd815150a9b6", 
+        "plugin": {
+            "class": "minion.plugins.basic.XFrameOptionsPlugin", 
+            "name": "XFrameOptionsPlugin", 
+            "version": "0.0"
+        }, 
+        "progress": null, 
+        "started": 1353090532, 
+        "state": "FINISHED"
+    }, 
+    "success": true
+}
+```
 
 When the plugin has finished correctly without operational errors,
 it's state will be `FINISHED`. If it failed because of errors it will
@@ -198,17 +224,34 @@ finished with an error state.
 
 To collect all results, `GET` the /results resource of the session:
 
-    $ curl -XGET http://127.0.0.1:8181/session/8ff8f416-eb3c-4a41-a7e9-4c118f59a36b/results
-    {
-        "results": [
-            {
-                "info": "Site has no X-Frame-Options header set"
-            }
-        ], 
-        "success": true
-    }
-
-> Note that the correct result format has not yet been defined and implements. In the final release the results will follow a specific schema.
+```
+$ curl http://127.0.0.1:8181/session/b4ca7f40-18b9-4cf8-8445-cd815150a9b6/results
+{
+    "success": true,
+    "session": {
+        "configuration": {
+            "target": "http://some.site"
+        }, 
+        "duration": 41, 
+        "files": [], 
+        "id": "b4ca7f40-18b9-4cf8-8445-cd815150a9b6", 
+        "plugin": {
+            "class": "minion.plugins.basic.XFrameOptionsPlugin", 
+            "name": "XFrameOptionsPlugin", 
+            "version": "0.0"
+        }, 
+        "progress": null, 
+        "started": 1353090532, 
+        "state": "FINISHED"
+    }, 
+    "issues": [
+        {
+            "Severity": "High", 
+            "Summary": "Site has no X-Frame-Options header set"
+        }
+    ] 
+}
+```
 
 ### Terminating a session
 
