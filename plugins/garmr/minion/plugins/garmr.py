@@ -8,6 +8,11 @@ from xml.etree import ElementTree
 from minion.plugin_api import ExternalProcessPlugin
 
 
+def issue_in_results(name, issues):
+    for issue in issues:
+        if issue['Summary'] == name:
+            return True
+
 def parse_garmr_xml(xml):
     root = ElementTree.fromstring(xml)
     results = []
@@ -20,7 +25,8 @@ def parse_garmr_xml(xml):
                 severity = "High"
             elif skipped is not None:
                 severity = "Info"
-	    results.append({ 'Summary': testcase.get('name'), 'Severity': severity})
+            if not issue_in_results(testcase.get('name'), results):
+                results.append({ 'Summary': testcase.get('name'), 'Severity': severity})
     return results
 
 
