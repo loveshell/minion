@@ -15,7 +15,6 @@
     {% if error %}
         <div class="alert alert-error"><strong>Error</strong><br/>{{ error }}</div>
     {% else %}
-        <h2>Overview</h2>
         <div id="errors_warnings">
             <table class="table table-risk-counters">
                 <tr>
@@ -65,92 +64,124 @@
                 {% endfor %}
             </div>
         {% endif %}
-        <h2>Details</h2>
-        <table class="table table-bordered table-striped">
-            <tbody>
-                <tr>
-                    <th>Current Status:</th>
-                    <td>
-                        {% if finished %}
-                        Scan is finished running.
-                        {% else %}
-                            <img id="scanning_gif" src="{{ static('scanner/img/scanning.gif') }}" height="20px" width="20px" /><span id="scan_status_label"> Scan is currently running...</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                <tr>
-                    <th>URL Scanned:</th>
-                    <td>{{results['configuration']['target']}}</td>
-                </tr>
-                <tr>
-                    <th>Plan Selected:</th>
-                    <td>{{results['plan']['name']}}</td>
-                </tr>
-                <tr>
-                    <th>Scan ID:</th>
-                    <td>{{results['id']}}</td>
-                </tr>
-                <tr>
-                    <th>Scan Owner:</th>
-                    <td>user@domain.com</td>
-                </tr>
-                <tr>
-                    <th>Time Started:</th>
-                    <td>
-                        
-                    </td>
-                </tr>
-                <tr>
-                    <th>Download Report:</th>
-                    <td>
-                        <a class="btn btn-small" href="#">Download HTML Report</a>
-                        <a class="btn btn-small" href="#">Download XML Report</a>
-                    </td>
-                </tr>
-            </tbody>
+        
+        <script src="{{ static('scanner/js/table_info_expand.js') }}"></script>
+
+        <table class="table table-bordered table-info">
+        <thead class="info_table_expander">
+            <tr>
+                <th>
+                    <h2><span class="plus_minus">+</span> Scan Information</h2>
+                </th>
+            </tr>
+        </thead>
+        <tbody class="info_table_area">
+            <tr>
+            <td>
+		        <table class="table table-bordered table-striped">
+		            <tbody>
+		                <tr>
+		                    <th>Current Status:</th>
+		                    <td>
+		                        {% if finished %}
+		                        Scan is finished running.
+		                        {% else %}
+		                            <img id="scanning_gif" src="{{ static('scanner/img/scanning.gif') }}" height="20px" width="20px" /><span id="scan_status_label"> Scan is currently running...</span>
+		                        {% endif %}
+		                    </td>
+		                </tr>
+		                <tr>
+		                    <th>URL Scanned:</th>
+		                    <td>{{results['configuration']['target']}}</td>
+		                </tr>
+		                <tr>
+		                    <th>Plan Selected:</th>
+		                    <td>{{results['plan']['name']}}</td>
+		                </tr>
+		                <tr>
+		                    <th>Scan ID:</th>
+		                    <td>{{results['id']}}</td>
+		                </tr>
+		                <tr>
+		                    <th>Scan Owner:</th>
+		                    <td>user@domain.com</td>
+		                </tr>
+		                <tr>
+		                    <th>Time Started:</th>
+		                    <td>
+		                        
+		                    </td>
+		                </tr>
+		                <tr>
+		                    <th>Download Report:</th>
+		                    <td>
+		                        <a class="btn btn-small" href="#">Download HTML Report</a>
+		                        <a class="btn btn-small" href="#">Download XML Report</a>
+		                    </td>
+		                </tr>
+		            </tbody>
+		        </table>
+            </td>
+            </tr>
+        </tbody>
         </table>
         
-        <h2>Detailed Results</h2>
+        <script src="{{ static('scanner/js/table_details_expand.js') }}"></script>
         <script src="{{ static('scanner/js/table_results_expand.js') }}"></script>
         
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th style="width: 100px">Severity</th>
-                    <th style="width: 150px !important;">Plugin Source</th>
-                    <th>Risk Summary</th>
-                </tr>
-            </thead>
-            <tbody id="results_table_tbody">
-                {% for session in results.sessions %}
-                    {% for issue in session.issues%}
-                        <tr>
-                            <td>{{ issue['Severity'] }}</td>
-                            <td>{{session['plugin']['name']}}</td>
-                            <td>
-                                <table class="table table-bordered table-results">
-                                <thead class="results_table_expander">
-                                    <tr>
-                                        <th>
-                                            <span class="plus_minus">+</span> {{issue['Summary']}}
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody class="results_table_area">
-                                    {% for key in issue %}
-                                        <tr>
-                                            <td>{{key}}</td>
-                                            <td>{{issue[key]}}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                                </table>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% endfor %}
-                
-            </tbody>
+        <table class="table table-bordered table-details">
+        <thead class="details_table_expander">
+            <tr>
+                <th>
+                    <h2><span class="plus_minus">-</span> Detailed Results</h2>
+                </th>
+            </tr>
+        </thead>
+        <tbody class="details_table_area">
+            <tr>
+            <td>
+		        <table class="table table-bordered table-striped">
+		            <thead>
+		                <tr>
+		                    <th style="width: 100px">Severity</th>
+		                    <th style="width: 150px !important;">Plugin Source</th>
+		                    <th>Risk Summary</th>
+		                </tr>
+		            </thead>
+		            <tbody id="results_table_tbody">
+		                {% for session in results.sessions %}
+		                    {% for issue in session.issues%}
+		                        <tr>
+		                            <td>{{ issue['Severity'] }}</td>
+		                            <td>{{session['plugin']['name']}}</td>
+		                            <td>
+		                                <table class="table table-bordered table-results">
+		                                <thead class="results_table_expander">
+		                                    <tr>
+		                                        <th>
+		                                            <span class="plus_minus">+</span> {{issue['Summary']}}
+		                                        </th>
+		                                    </tr>
+		                                </thead>
+		                                <tbody class="results_table_area">
+		                                    {% for key in issue %}
+		                                        <tr>
+		                                            <td>{{key}}</td>
+		                                            <td>{{issue[key]}}</td>
+		                                        </tr>
+		                                    {% endfor %}
+		                                </tbody>
+		                                </table>
+		                            </td>
+		                        </tr>
+		                    {% endfor %}
+		                {% endfor %}
+		                
+		            </tbody>
+		        </table>
+            </td>
+            </tr>
+        </tbody>
         </table>
                 
         {% if not finished %}
