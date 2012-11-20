@@ -35,7 +35,6 @@ def newscan(request, template=None):
         if request.POST["new_scan_url_input"] and request.POST["plan_selection"] in r.text:
             url_entered = request.POST["new_scan_url_input"]        #Needs sanitization??
             plan_selected = request.POST["plan_selection"]
-            time_started = time.asctime(time.localtime(time.time()))
             
             #Task Engine work
             #Start the scan using provided url to PUT to the API endpoint
@@ -54,7 +53,7 @@ def newscan(request, template=None):
                 return render(request, template, data)
     
             #Add the new scan to the database
-            newscan1 = Scan(scan_id=scan_id, scan_creator=request.user, scan_date=time_started, scan_url=url_entered, scan_plan=plan_selected)
+            newscan1 = Scan(scan_id=scan_id, scan_creator=request.user, scan_url=url_entered, scan_plan=plan_selected)
             newscan1.save()
     
             #return render(request, template, data)
