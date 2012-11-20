@@ -134,24 +134,3 @@ def xhr_scan_status(request):
     else:
         message = ""
     return HttpResponse(str(message))
-
-@anonymous_csrf
-def bleach_test(request):
-    """A view outlining bleach's HTML sanitization."""
-    allowed_tags = ('strong', 'em')
-
-    data = {}
-
-    if request.method == 'POST':
-        bleachme = request.POST.get('bleachme', None)
-        data['bleachme'] = bleachme
-        if bleachme:
-            data['bleached'] = bleach.clean(bleachme, tags=allowed_tags)
-
-        # CEF logging: Log user input that needed to be "bleached".
-        if data['bleached'] != bleachme:
-            log_cef('Bleach Alert', logging.INFO, request,
-                    username='anonymous', signature='BLEACHED',
-                    msg='User data needed to be bleached: %s' % bleachme)
-
-    return render(request, 'scanner/bleach.html', data)
