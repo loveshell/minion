@@ -9,9 +9,26 @@ from django.core import serializers
 from mobility.decorators import mobile_template
 from session_csrf import anonymous_csrf
 from models import Scan
-import logging, bleach, commonware, urllib2, json, time, requests
+import logging, bleach, commonware, urllib2, json, time, requests, urlparse
 
 log = commonware.log.getLogger('playdoh')
+
+def _validate_target_url(url):
+    """Only accept URLs that are basic. No query, fragment or embedded auth allowed"""
+    if not isinstance(url, str) and not isinstance(url, unicode):
+        return False
+    p = urlparse.urlparse(url)
+    if p.scheme not in ('http', 'https'):
+        return False
+    if p.query or p.fragment or p.username or p.password:
+        return False
+    return True    
+
+def _validate_plan_name(plan_name, plans):
+    """Only accept plans names that are in the given list of plan descriptions."""
+    for plan in plans:
+        if plan['name'] == plan_name:
+            return True
 
 @mobile_template('scanner/home.html')
 def home(request, template=None):
@@ -32,10 +49,9 @@ def newscan(request, template=None):
         return render(request, template, data)
     #Page has been POSTed to, create a scan and redirect to /scan/id
     if request.method == 'POST':
-        if request.POST["new_scan_url_input"] and request.POST["plan_selection"] in r.text:
-            url_entered = request.POST["new_scan_url_input"]        #Needs sanitization??
-            plan_selected = request.POST["plan_selection"]
-            
+        url_entered = request.POST["new_scan_url_input"]
+        plan_selected = request.POST["plan_selection"]
+        if _validate_target_url(url_entered) and _validate_plan_name(plan_selected, resp_json['plans']):
             #Task Engine work
             #Start the scan using provided url to PUT to the API endpoint
             payload = json.dumps({"target": url_entered})
