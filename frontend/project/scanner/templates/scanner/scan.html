@@ -153,26 +153,41 @@
 		                    {% for issue in session.issues%}
 		                        <tr>
 		                            <td>
-                        <div class="severity alert-{{ issue['Severity'].lower()}}">
-		                            {{ issue['Severity'] }}
-                        </div>
+        				                <div class="severity alert-{{ issue['Severity'].lower()}}">
+		                            	{{ issue['Severity'] }}
+                        				</div>
 		                            </td>
 		                            <td>{{session['plugin']['name']}}</td>
 		                            <td>
 		                                <table class="table table-bordered table-results">
 		                                <thead class="results_table_expander">
 		                                    <tr>
-		                                        <th>
+		                                        <th colspan="2">
 		                                            <span class="plus_minus">+</span> {{issue['Summary']}}
 		                                        </th>
 		                                    </tr>
 		                                </thead>
 		                                <tbody class="results_table_area">
 		                                    {% for key in issue %}
-		                                        <tr>
-		                                            <td>{{key}}</td>
-		                                            <td>{{issue[key]}}</td>
-		                                        </tr>
+		            	                        {% if key == '_time' %}
+		            	                        {% elif key == 'URLs' %}
+		                                        	<tr>
+			                                            <td>{{key}}</td>
+		                                            	<td>	
+					                                    {% for url in issue[key] %}
+				                                            <a href="{{url}}">{{url}}</a><br/>
+					                                    {% endfor %}
+				            	                        {% if issue[key]|length >= 25 %}
+					                                    	...
+											        	{% endif %}
+		                                            	</td>
+		                                        	</tr>
+		        	                            {% else %}
+		                                        	<tr>
+			                                            <td>{{key}}</td>
+		                                            	<td>{{issue[key]}}</td>
+		                                        	</tr>
+									        	{% endif %}
 		                                    {% endfor %}
 		                                </tbody>
 		                                </table>
