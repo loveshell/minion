@@ -206,7 +206,7 @@
         {% if not finished %}
             <script type="text/javascript">
                 var scan_id = "{{results['id']}}";
-                var csrfmiddlewaretoken = "{{csrf_token|escapejs}}";
+                var csrfmiddlewaretoken = "{{csrf_token}}";
             </script>
             <script src="{{ static('scanner/js/live_results_update.js') }}"></script>
         {% endif %}
