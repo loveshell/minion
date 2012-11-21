@@ -3,13 +3,15 @@ from funfactory.log import log_cef
 from django.core.context_processors import csrf
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.views.decorators.http import require_http_methods
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import simplejson
 from django.core import serializers
 from mobility.decorators import mobile_template
 from session_csrf import anonymous_csrf
 from models import Scan
-import logging, bleach, commonware, urllib2, json, time, requests, urlparse
+import logging, bleach, commonware, urllib2, json, time, requests, urlparse, re
 
 log = commonware.log.getLogger('playdoh')
 
@@ -133,19 +135,68 @@ def plans(request, template=None):
         data = {"error":"Error retrieving plans. Check the connection to the task engine."}
     return render(request, template, data)
 
-@csrf_exempt
+#
+# /xhr_scan_status
+#
+# This endpoint makes a call to the task-engine to retrieve results
+# for a specific scan. It takes two arguments:
+#
+#  scan_id - the UUID of the scan
+#  token - an optional token that will be passed to the task engine
+#
+# The call is only allowed for logged in users and the user must own
+# specified scan.
+#
+# The call is also has CSRF protection and expects the AJAX client
+# to correctly send the CSRF token.
+#
+
+def _validate_scan_id(scan_id):
+    return scan_id and re.match(r"^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$", scan_id)
+
+@csrf_protect
+@require_http_methods(["POST"])
 def xhr_scan_status(request):
-    if request.is_ajax():
-        message = "Invalid GET Request. Must POST with ID."
-        if request.method == 'POST':
-            #log.debug("\n\nAJAX_POST_RECEIVED " + str(request.POST))
-            scan_id = request.POST["scan_id"]
-            scan_token = request.POST["token"]
-            params = {}
-            if scan_token:
-                params['token'] = scan_token
-            scan_status = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id + '/results', params=params)
-            message = scan_status.content
-    else:
-        message = ""
-    return HttpResponse(str(message))
+
+    # Only authenticated users can make this call
+
+    if not request.user.is_authenticated():
+        message = {'success': False, 'error': 'unauthorized'}
+        return HttpResponse(json.dumps(message), mimetype="application/json")
+
+    # Do some basic checks on the parameters. Specially the scan_id
+    # since we use it to build a url to the task engine.
+
+    scan_id = request.POST.get("scan_id")
+    scan_token = request.POST.get("token")
+
+    if not _validate_scan_id(scan_id):
+        message = {'success': False, 'error': 'invalid-scan-id'}
+        return HttpResponse(json.dumps(message), mimetype="application/json")
+
+    # See if the logged in user actually owns the scan
+
+    try:
+        scan = Scan.objects.get(scan_creator=request.user,scan_id=scan_id)
+    except ObjectDoesNotExist as e:
+        message = {'success': False, 'error': 'unknown-scan'}
+        return HttpResponse(json.dumps(message), mimetype="application/json")
+    except Exception as e:
+        logging.exception("Unexpected response from Scan.object.get({},{})".format(request.user.email,scan_id))
+        message = {'success': False, 'error': 'internal-error'}
+        return HttpResponse(json.dumps(message), mimetype="application/json")
+
+    # Call the task engine and return the results. The task engine
+    # will also validate the scan_id and the token and will return
+    # a JSON response or non-200 status.
+
+    try:
+        params = { 'token': scan_token }
+        r = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id + '/results', params=params)
+        r.raise_for_status()
+        return HttpResponse(r.content)
+    except Exception as e:
+        logging.exception("Failed to call the task engine")
+        message = {'success': False, 'error': 'internal-error'}
+        return HttpResponse(json.dumps(message), mimetype="application/json")
+        

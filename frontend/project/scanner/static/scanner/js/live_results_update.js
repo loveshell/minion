@@ -31,6 +31,7 @@ function createResultTable(issue) {
 //Runs every x interval to retrieve results from API and update interface appropriately
 function queryUpdate() {
     $.post("/en-US/xhr_scan_status/", {
+	"csrfmiddlewaretoken": csrfmiddlewaretoken,
         "scan_id":scan_id,
         "token":since_token
     },
