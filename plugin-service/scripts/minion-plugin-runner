@@ -46,11 +46,11 @@ class SimpleCallbacks:
         logging.debug("Plugin reported progress: %d%%%s" % (percentage, description))
 
     def report_results(self, results):
-        logging.debug("Plugin reported results: %s" % str(results))
+        logging.debug("Plugin reported results: %s" % str(list(results)))
         self.results += results
 
     def report_errors(self, errors):
-        logging.debug("Plugin reported errors: %s" % str(errors))
+        logging.debug("Plugin reported errors: %s" % str(list(errors)))
 
     def report_files(self, files):
         logging.debug("Plugin reported files: %s" % str(files))
@@ -143,6 +143,7 @@ class PluginServiceCallbacks:
         deferToThread(self._report_progress, percentage, description)        
     
     def _report_results(self, results):
+        results = list(results)
         logging.debug("PluginServiceCallbacks.report_results: " + str(results))
         self.semaphore.run(self._post_async, "/session/%s/report/results" % self.plugin_session_id, results)
         logging.debug("PluginServiceCallbacks.report_results DONE")
@@ -158,6 +159,7 @@ class PluginServiceCallbacks:
         deferToThread(self._report_files, files)
 
     def _report_errors(self, errors):
+        errors = list(errors)
         logging.debug("PluginServiceCallbacks.report_errors: " + str(errors))
         self.semaphore.run(self._post_async, "/session/%s/report/errors" % self.plugin_session_id, errors)
 
