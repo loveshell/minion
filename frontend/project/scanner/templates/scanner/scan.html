@@ -174,11 +174,13 @@
 		                                        	<tr>
 			                                            <td>{{key}}</td>
 		                                            	<td>	
+                                                                          <ul>
 					                                    {% for url in issue[key] %}
-				                                            <a href="{{url}}">{{url}}</a><br/>
+				                                            <li><a href="{{url}}">{{url}}</a></li>
 					                                    {% endfor %}
+                                                                          </ul>
 				            	                        {% if issue[key]|length >= 25 %}
-					                                    	...
+					                                    	<p>... more similar results omitted ... </p>
 											        	{% endif %}
 		                                            	</td>
 		                                        	</tr>
