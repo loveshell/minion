@@ -123,6 +123,13 @@ class IssueGeneratingPlugin(BlockingPlugin):
     def do_run(self):
         for i in range(self.COUNT):
             for n in range(len(self.LEVELS)):
-                self.report_results([{"Summary":"This is issue #" + str(n), "Severity":self.LEVELS[n]}])
+                issue = { "Summary":      "This is issue #" + str(n),
+                          "Severity":     self.LEVELS[n],
+                          "Confidence":   "Warning",
+                          "Solution":     "This check is specific to Internet Explorer 8 and Google Chrome. Ensure each page sets a Content-Type header and the X-CONTENT-TYPE-OPTIONS if the Content-Type header is unknown",
+                          "Further-Info": 'No known Anti-CSRF tokens [anticsrf, CSRFToken, __RequestVerificationToken] were found in the following HTML forms: [Form 1: "s" ].',
+                          "URLs":         ["http://www.foo/abc", "http://www.foo/woo"],
+                          "Description":  "No Anti-CSRF tokens were found in a HTML submission form. A cross-site request forgery is an attack that involves forcing a victim to send an HTTP request to a target destination without their knowledge or intent in order to perform an action as the victim. The underlying cause is application functionality using predictable URL/form actions in a repeatable way. The nature of the attack is that CSRF exploits the trust that a web site has for a user."}
+                self.report_results([issue])
                 time.sleep(1.5)
             
