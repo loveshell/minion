@@ -160,8 +160,11 @@ class ExternalProcessProtocol(ProcessProtocol):
 
     def processEnded(self, reason):
         if isinstance(reason.value, ProcessDone):
-            self.plugin.do_process_ended(reason.value.status)
-
+            try:
+                self.plugin.do_process_ended(reason.value.status)
+            except Exception as e:
+                logging.exception("Plugin threw an exception in do_process_ended")
+                self.plugin.callbacks.report_finish()
 
 class ExternalProcessPlugin(AbstractPlugin):
     
