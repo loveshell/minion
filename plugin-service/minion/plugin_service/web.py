@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import time
+import uuid
 
 import cyclone.web
 from twisted.internet.defer import inlineCallbacks
@@ -133,11 +134,7 @@ class PluginRunnerReportResultsHandler(cyclone.web.RequestHandler):
             return
         results = json.loads(self.request.body)
         logging.debug("Received results from plugin session %s: %s" % (session,str(results)))
-        # Add a timestamp to the results. This is not super accurate but that is ok, it is
-        # just to get them incrementally later from the task engine api.
-        for result in results:
-            result['_time'] = int(time.time() * 1000)
-        session.results += results
+        session.add_results(results)
         self.finish({'success':True})
 
 class PluginRunnerReportFilesHandler(cyclone.web.RequestHandler):

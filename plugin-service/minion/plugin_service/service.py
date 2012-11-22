@@ -87,6 +87,15 @@ class PluginSession:
     def terminate(self):
         logging.debug("PluginSession %s %s terminate()" % (self.id, self.plugin_name))
 
+    def add_results(self, results):
+        # Add a timestamp to the results. This is not super accurate but that is ok, it is
+        # just to get them incrementally later from the task engine api.
+        for result in results:
+            result['_time'] = int(time.time() * 1000)
+        for result in results:
+            result['Id'] = str(uuid.uuid4())
+        self.results += results
+
     def summary(self):
         return { 'id': self.id,
                  'state': self.state,
