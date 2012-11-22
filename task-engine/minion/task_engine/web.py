@@ -187,7 +187,7 @@ class ScanResultsHandler(cyclone.web.RequestHandler):
             self.finish({'success': False, 'error': 'no-such-scan'})
             return
 
-        since = 0
+        since = "1975-09-23T00:00:00.000000Z"
         token = self.get_argument('token', None)
         if token:
             if not self._validate_token(token):
