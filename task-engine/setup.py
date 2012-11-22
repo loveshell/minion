@@ -5,7 +5,6 @@
 from setuptools import setup
 
 install_requires = [
-    'Twisted==12.2.0',
     'requests==0.14.2',
     'cyclone==1.0-rc13'
 ]
