@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import datetime
 import json
 import logging
 import optparse
@@ -91,7 +92,8 @@ class PluginSession:
         # Add a timestamp to the results. This is not super accurate but that is ok, it is
         # just to get them incrementally later from the task engine api.
         for result in results:
-            result['_time'] = int(time.time() * 1000)
+            date = datetime.datetime.utcnow()
+            result['Date'] = date.isoformat() + 'Z'
         for result in results:
             result['Id'] = str(uuid.uuid4())
         self.results += results

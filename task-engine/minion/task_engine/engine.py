@@ -335,12 +335,12 @@ class TaskEngineSession:
     # incremental results.
     #
 
-    def results(self, since = 0):
+    def results(self, since = "1975-09-23T00:00:00.000000Z"):
         sessions = []
         for session in self.plugin_sessions:
             issues = []
             for i in session['issues']:
-                if i['_time'] > since:
+                if i['Date'] > since:
                     issues.append(i)
             s = { 'id': session['id'],
                   'plugin': session['plugin'],

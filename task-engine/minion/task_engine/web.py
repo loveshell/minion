@@ -150,14 +150,14 @@ class ScanResultsHandler(cyclone.web.RequestHandler):
     def _validate_token(self, token):
         try:
             decoded = base64.b64decode(token)
-            if decoded is None or not re.match(r"^\d+$", decoded):
+            if decoded is None or not re.match(r"^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\d\d\d\dZ+$", decoded):
                 return False
             return True
         except Exception as e:
             return False
 
     def _parse_token(self, token):
-        return int(base64.b64decode(token))
+        return base64.b64decode(token)
     
     def _all_sessions_done(self, sessions):
         for session in sessions:
@@ -173,8 +173,8 @@ class ScanResultsHandler(cyclone.web.RequestHandler):
             for session in sessions:
                 issues = []
                 for i in session['issues']:
-                    if i['_time'] > max_time:
-                        max_time = i['_time']
+                    if i['Date'] > max_time:
+                        max_time = i['Date']
             return base64.b64encode(str(max_time))
 
     @inlineCallbacks
