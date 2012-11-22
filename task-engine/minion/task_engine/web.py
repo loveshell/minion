@@ -167,7 +167,7 @@ class ScanResultsHandler(cyclone.web.RequestHandler):
 
     def _generate_token(self, since, sessions):
         if len(sessions) == 0:
-            return base64.b64encode(str(0))
+            return base64.b64encode("1975-09-23Z00:00:00.000000Z")
         if not self._all_sessions_done(sessions):
             max_time = since
             for session in sessions:
