@@ -11,6 +11,7 @@ import optparse
 import os
 import time
 import uuid
+import zipfile
 
 import zope.interface
 from twisted.internet import protocol
@@ -40,6 +41,18 @@ class PluginRunnerProcessProtocol(protocol.ProcessProtocol):
         #logging.debug("PluginRunnerProcessProtocol.processEnded %s" % str(reason))
         self.plugin_session.duration = int(time.time()) - self.plugin_session.started
         if isinstance(reason.value, ProcessDone):
+            # TODO This should happen async to not block. Probably better in the success callback of spawnProcess() ?
+            if self.plugin_session.artifacts:
+                try:
+                    logging.debug("Opening zip file %s" % self.plugin_session.artifacts_path())
+                    zip = zipfile.ZipFile(self.plugin_session.artifacts_path(), "w" )
+                    for name,paths in self.plugin_session.artifacts.items():
+                        for path in paths:
+                            logging.debug("Zipping %s to %s" % (self.plugin_session.work_directory, path))
+                            zip.write(os.path.join(self.plugin_session.work_directory, path), path, zipfile.ZIP_DEFLATED)
+                    zip.close()
+                except Exception as e:
+                    logging.exception("Failed to create artifacts zip file: " + str(e))
             self.plugin_session.state = 'FINISHED'
         elif isinstance(reason.value, ProcessTerminated):
             exit_code = reason.value.status / 256
@@ -57,11 +70,13 @@ class PluginSession:
     collecting from the plugin, etc.
     """
 
-    def __init__(self, plugin_name, plugin_class, configuration, debug = False):
+    def __init__(self, plugin_name, plugin_class, configuration, work_directory_root, debug = False):
         self.plugin_name = plugin_name
         self.plugin_class = plugin_class
         self.configuration = configuration
+        self.work_directory_root = work_directory_root
         self.debug = debug
+        
         self.id = str(uuid.uuid4())
         self.state = 'CREATED'
         self.started = int(time.time())
@@ -69,17 +84,20 @@ class PluginSession:
         self.results = []
         self.errors = []
         self.progress = None
-        self.files = []
+        self.artifacts = {}
+        self.work_directory = os.path.join(self.work_directory_root, self.id)
         
     def start(self):
         logging.debug("PluginSession %s %s start()" % (self.id, self.plugin_name))
+        os.mkdir(self.work_directory)
         protocol = PluginRunnerProcessProtocol(self)
         arguments = ["minion-plugin-runner"]
         if self.debug:
             arguments += ["-d"]
         arguments += ["-p", self.plugin_name]
+        arguments += ["-w", self.work_directory]
         environment = { 'MINION_PLUGIN_SERVICE_API': 'http://127.0.0.1:8181', 'MINION_PLUGIN_SESSION_ID': self.id, 'PATH': os.getenv('PATH') }
-        self.process = reactor.spawnProcess(protocol, "minion-plugin-runner", arguments, environment)
+        self.process = reactor.spawnProcess(protocol, "minion-plugin-runner", arguments, environment, path=self.work_directory)
         self.state = 'STARTED'
 
     def stop(self):
@@ -98,6 +116,32 @@ class PluginSession:
             result['Id'] = str(uuid.uuid4())
         self.results += results
 
+    #
+    # Add artifacts to this session. The format is an array that
+    # looks like this:
+    #
+    #  [
+    #    { name: "Reports", paths: ["report1.txt", "report2.txt"] },
+    #    { name: "Unspecified", paths: ["output.log", "errors.log"] }
+    #  ]
+    #
+    # The files should be relative to the plugin work directory and
+    # are all at the root of the artifacts zip file.
+    #
+
+    def add_artifacts(self, artifacts):
+        for artifact in artifacts:
+            self.artifacts.setdefault(artifact["name"], set()).update(artifact["paths"])
+
+    def flatten_artifacts(self):
+        artifacts = {}
+        for name,paths in self.artifacts.items():
+            artifacts[name] = sorted(list(paths))
+        return artifacts
+
+    def artifacts_path(self):
+        return os.path.join(self.work_directory_root, self.id + ".zip")
+
     def summary(self):
         return { 'id': self.id,
                  'state': self.state,
@@ -108,7 +152,7 @@ class PluginSession:
                  'progress': self.progress,
                  'started': self.started,
                  'issues': [],
-                 'files' : self.files,
+                 'artifacts' : self.flatten_artifacts(),
                  'duration': self.duration if self.duration else int(time.time()) - self.started }
 
 
@@ -120,7 +164,8 @@ def _plugin_descriptor(plugin):
 
 class PluginService:
     
-    def __init__(self):
+    def __init__(self, work_directory_root):
+        self.work_directory_root = work_directory_root
         self.sessions = {}
         self.plugins = {}
 
@@ -130,7 +175,7 @@ class PluginService:
     def create_session(self, plugin_name, configuration, debug):
         plugin_class = self.plugins.get(plugin_name)
         if plugin_class:
-            session = PluginSession(plugin_name, plugin_class, configuration, debug)
+            session = PluginSession(plugin_name, plugin_class, configuration, self.work_directory_root, debug)
             self.sessions[session.id] = session
             return session
 

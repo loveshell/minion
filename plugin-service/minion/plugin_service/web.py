@@ -82,22 +82,23 @@ class GetPluginSessionResultsHandler(cyclone.web.RequestHandler):
             return
         self.finish({'success': True, 'session': session.summary(), 'issues': session.results})
 
-class GetPluginSessionFileHandler(cyclone.web.RequestHandler):
+class GetPluginSessionArtifactsHandler(cyclone.web.RequestHandler):
     def get(self, session_id):
         plugin_service = self.application.plugin_service
         session = plugin_service.get_session(session_id)
         if not session:
             self.finish({'success': False, 'error': 'no-such-session'})
             return
-        for file in session.files:
-            if file['id'] == file_id:
-                # Return the file contents
-                try:
-                    return open(file['location'], 'r').read()
-                except Exception as e:
-                    logging.error("Failed to access file %s: %s" % (file['location'],str(e)))
-                    return jsonify({'success': False, 'error': 'failed-to-read-file'})
-        return jsonify({'success': False, 'error': 'no-such-file'})
+        # TODO This blocks the server. What is the right way to serve files?
+        artifacts_path = session.artifacts_path()
+        if not os.path.exists(artifacts_path):
+            raise cyclone.web.HTTPError(404)
+        with open(artifacts_path) as f:
+            data = f.read()
+            self.set_header("Content-Type", "application/zip")
+            filename = session_id + ".zip"
+            self.set_header("Content-Disposition", "inline; filename=\"%s\"" % filename)
+            self.finish(data)
 
 #
 
@@ -137,7 +138,7 @@ class PluginRunnerReportResultsHandler(cyclone.web.RequestHandler):
         session.add_results(results)
         self.finish({'success':True})
 
-class PluginRunnerReportFilesHandler(cyclone.web.RequestHandler):
+class PluginRunnerReportArtifactsHandler(cyclone.web.RequestHandler):
 
     def post(self, session_id):
         plugin_service = self.application.plugin_service
@@ -145,9 +146,9 @@ class PluginRunnerReportFilesHandler(cyclone.web.RequestHandler):
         if not session:
             self.finish({'success': False, 'error': 'no-such-session'})
             return
-        files = json.loads(self.request.body)
-        logging.debug("Received files from plugin session %s: %s" % (session,str(files)))
-        session.files += files
+        artifacts = json.loads(self.request.body)
+        logging.debug("Received artifacts from plugin session %s: %s" % (session,str(artifacts)))
+        session.add_artifacts(artifacts)
         self.finish({'success':True})
 
 # TODO Is this actually used?
@@ -190,7 +191,7 @@ class PluginServiceApplication(cyclone.web.Application):
         # Configure our settings. We have basic default settings that just work for development
         # and then override those with what is defined in either ~/.minion/ or /etc/minion/
 
-        plugin_service_settings = dict()
+        plugin_service_settings = {"work_directory_root": "/tmp"}
 
         for settings_path in (PLUGIN_SERVICE_USER_SETTINGS_PATH, PLUGIN_SERVICE_SYSTEM_SETTINGS_PATH):
             settings_path = os.path.expanduser(settings_path)
@@ -205,7 +206,7 @@ class PluginServiceApplication(cyclone.web.Application):
         
         # Create the Plugin Service and register plugins
 
-        self.plugin_service = PluginService()
+        self.plugin_service = PluginService(plugin_service_settings['work_directory_root'])
 
         from minion.plugins.basic import AbortedPlugin
         from minion.plugins.basic import ExceptionPlugin
@@ -216,6 +217,7 @@ class PluginServiceApplication(cyclone.web.Application):
         from minion.plugins.basic import IssueGeneratingPlugin
         from minion.plugins.basic import LongRunningPlugin
         from minion.plugins.basic import XFrameOptionsPlugin
+        from minion.plugins.basic import ReportGeneratingPlugin
 
         self.plugin_service.register_plugin(AbortedPlugin)
         self.plugin_service.register_plugin(ExceptionPlugin)
@@ -226,6 +228,7 @@ class PluginServiceApplication(cyclone.web.Application):
         self.plugin_service.register_plugin(IssueGeneratingPlugin)
         self.plugin_service.register_plugin(LongRunningPlugin)
         self.plugin_service.register_plugin(XFrameOptionsPlugin)
+        self.plugin_service.register_plugin(ReportGeneratingPlugin)
 
         try:
             from minion.plugins.nmap import NMAPPlugin
@@ -257,12 +260,12 @@ class PluginServiceApplication(cyclone.web.Application):
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/state", PutPluginSessionStateHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", GetPluginSessionHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/results", GetPluginSessionResultsHandler),
-            (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/file/(.+)", GetPluginSessionFileHandler),
+            (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/artifacts", GetPluginSessionArtifactsHandler),
             # Plugin Runner API
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/configuration", PluginRunnerGetConfigurationHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/progress", PluginRunnerReportProgressHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/results", PluginRunnerReportResultsHandler),
-            (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/files", PluginRunnerReportFilesHandler),
+            (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/artifacts", PluginRunnerReportArtifactsHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/errors", PluginRunnerReportErrorsHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/finish", PluginRunnerReportFinishHandler),
         ]

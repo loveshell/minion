@@ -120,7 +120,8 @@ class NMAPPlugin(ExternalProcessPlugin):
         nmap_path = self.locate_program(self.NMAP_NAME)
         if nmap_path is None:
             raise Exception("Cannot find nmap in path")
-        self.output = ""
+        self.nmap_stdout = ""
+        self.nmap_stderr = ""
         u = urlparse.urlparse(self.configuration['target'])
         args = ["--open"]
         ports = self.configuration.get('ports')
@@ -132,10 +133,18 @@ class NMAPPlugin(ExternalProcessPlugin):
         self.spawn(nmap_path, args)
 
     def do_process_stdout(self, data):
-        self.output += data
+        self.nmap_stdout += data
+
+    def do_process_stderr(self, data):
+        self.nmap_stderr += data
 
     def do_process_ended(self, status):
-        services = parse_nmap_output(self.output)
+        with open("nmap.stdout.txt", "w") as f:
+            f.write(self.nmap_stdout)
+        with open("nmap.stderr.txt", "w") as f:
+            f.write(self.nmap_stderr)
+        self.report_artifacts("NMAP Output", ["nmap.stdout.txt", "nmap.stderr.txt"])
+        services = parse_nmap_output(self.nmap_stdout)
         issues = services_to_issues(services)
         self.callbacks.report_results(issues)
         self.callbacks.report_finish()

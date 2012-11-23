@@ -1,6 +1,7 @@
 
 
 import logging
+import os
 import time
 import sys
 
@@ -133,3 +134,16 @@ class IssueGeneratingPlugin(BlockingPlugin):
                 self.report_results([issue])
                 time.sleep(1.5)
             
+
+class ReportGeneratingPlugin(BlockingPlugin):
+    
+    def do_run(self):
+        
+        with open(os.path.join(self.work_directory, "temporary.txt"), "w") as f:
+            f.write("This is a temporary file that we do not want in the artifacts zip\n")
+        
+        with open(os.path.join(self.work_directory, "report.txt"), "w") as f:
+            f.write("This is my report that we do want in the artifacts zip\n")
+
+        self.report_artifacts("Some Tool Report", ["report.txt"])
+        self.report_results([{"Summary":"This is an issue", "Severity":"Low"}])

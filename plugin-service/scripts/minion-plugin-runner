@@ -40,6 +40,7 @@ class SimpleCallbacks:
     def __init__(self, session_configuration):
         self.session_configuration = session_configuration
         self.results = []
+        self.artifacts = {}
 
     def report_progress(self, percentage, description = ""):
         if description: description = " (" + description + ")"
@@ -52,8 +53,9 @@ class SimpleCallbacks:
     def report_errors(self, errors):
         logging.debug("Plugin reported errors: %s" % str(list(errors)))
 
-    def report_files(self, files):
-        logging.debug("Plugin reported files: %s" % str(files))
+    def report_artifacts(self, name, paths):
+        logging.debug("Plugin reported files: %s %s" % (name, str(paths)))
+        self.artifacts.setdefault(name, list()).append(paths)
 
     def report_finish(self):
         logging.debug("Plugin is finished")
@@ -151,12 +153,13 @@ class PluginServiceCallbacks:
     def report_results(self,results):
         deferToThread(self._report_results, results)
 
-    def _report_files(self, files):
-        logging.debug("PluginServiceCallbacks.report_files: " + str(files))
-        self.semaphore.run(self._post_async, "/session/%s/report/files" % self.plugin_session_id, files)
+    def _report_artifacts(self, name, paths):
+        artifacts = [{ "name": name, "paths": paths }]
+        logging.debug("PluginServiceCallbacks.report_artifacts: %s" % str(artifacts))
+        self.semaphore.run(self._post_async, "/session/%s/report/artifacts" % self.plugin_session_id, artifacts)
 
-    def report_files(self, files):
-        deferToThread(self._report_files, files)
+    def report_artifacts(self, name, paths):
+        deferToThread(self._report_artifacts, name, paths)
 
     def _report_errors(self, errors):
         errors = list(errors)
@@ -189,13 +192,14 @@ class PluginServiceCallbacks:
     
 class PluginRunner:
 
-    def __init__(self, reactor, callbacks, plugin_module_name, plugin_class_name):
+    def __init__(self, reactor, callbacks, plugin_module_name, plugin_class_name, work_directory):
 
         self.callbacks = callbacks
         self.callbacks.runner = self
         self.reactor = reactor
         self.plugin_module_name = plugin_module_name
         self.plugin_class_name = plugin_class_name
+        self.work_directory = work_directory
         self.exit_code = 0
 
         try:
@@ -204,6 +208,7 @@ class PluginRunner:
             self.plugin = self.plugin_class()
             self.plugin.reactor = self.reactor
             self.plugin.callbacks = self.callbacks
+            self.plugin.work_directory = self.work_directory
         except Exception as e:
             logging.exception("Failed to load plugin %s/%s" % (self.plugin_module_name, self.plugin_class_name))
             sys.exit(1)
@@ -213,7 +218,6 @@ class PluginRunner:
         logging.debug("Starting %s" % str(self.plugin))
 
         def configurationCallback(configuration):
-            logging.debug("MOOOOOO configurationCallback")
             try:
                 self.plugin.configuration = json.loads(configuration)
                 self.plugin.do_configure()
@@ -229,7 +233,6 @@ class PluginRunner:
         deferred = self.callbacks.configuration()
         deferred.addCallback(configurationCallback)
 
-        reactor.run()    
         
 #
 # plugin-runner.py <module.Plugin>
@@ -241,6 +244,7 @@ if __name__ == "__main__":
     parser.add_option("-d", "--debug", action="store_true")
     parser.add_option("-c", "--configuration")
     parser.add_option("-p", "--plugin")
+    parser.add_option("-w", "--work-directory", default="/tmp")
     
     (options, args) = parser.parse_args()
     
@@ -259,7 +263,12 @@ if __name__ == "__main__":
     else:
         callbacks = SimpleCallbacks(options.configuration)
 
-    runner = PluginRunner(reactor, callbacks, plugin_module_name, plugin_class_name)
+    runner = PluginRunner(reactor, callbacks, plugin_module_name, plugin_class_name, options.work_directory)
     runner.run()
+
+    reactor.run()
     
+    # When the plugin is done, we check if it registered any files to save. If it did then we create a zip
+    # file like $WORK_DIR_ROOT/$SESSION_ID.zip containing the files it registered.
+
     sys.exit(runner.exit_code)

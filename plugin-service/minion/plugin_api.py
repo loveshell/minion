@@ -26,7 +26,7 @@ class IPluginRunnerCallbacks(zope.interface.Interface):
         """Plugin has results to report."""
     def report_errors(errors):
         """Plugin has errors to report."""
-    def report_files(files):
+    def report_artifacts(name, paths):
         """Plugin has files available."""
     def report_finish():
         """Plugin is done"""
@@ -45,6 +45,7 @@ class IPlugin(zope.interface.Interface):
     callbacks = zope.interface.Attribute("""The callbacks to send data back""")
     reactor = zope.interface.Attribute("""The reactor this plugin in running in""")
     site = zope.interface.Attribute("""The site to scan""")
+    work_directory = zope.interface.Attribute("""The path to the work directory""")
 
     # Plugin lifecycle methods. These are all called by the PluginRunner.
 
@@ -105,8 +106,8 @@ class AbstractPlugin:
     def report_errors(self, errors):
         self.callbacks.report_errors(errors)
 
-    def report_files(self, files):
-        self.callbacks.report_files(files)
+    def report_artifacts(self, name, paths):
+        self.callbacks.report_artifacts(name, paths)
 
     def report_abort(self, exit_code = 1):
         self.callbacks.report_abort(exit_code)
@@ -134,7 +135,7 @@ class BlockingPlugin(AbstractPlugin):
         self.callbacks.report_finish()
 
     def _finish_with_failure(self, failure):
-        logging.debug("BlockingPlugin._finish_with_failure")
+        logging.error("BlockingPlugin._finish_with_failure: " + str(failure))
         self.report_abort(AbstractPlugin.EXIT_CODE_FAILED)
 
     def do_start(self):
