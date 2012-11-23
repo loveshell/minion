@@ -17,6 +17,7 @@ from twisted.internet.task import deferLater, LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.web.client import getPage
 
+import cyclone.httpclient
 
 PLANS = {}
 
@@ -210,11 +211,12 @@ SCAN_DATABASE_CLASSES = { 'files': FileScanDatabase, 'memory': MemoryScanDatabas
 
 class TaskEngineSession:
 
-    def __init__(self, plan, configuration, database, plugin_service_api):
+    def __init__(self, plan, configuration, database, plugin_service_api, artifacts_path):
         self.plan = plan
         self.configuration = configuration
         self.database = database
         self.plugin_service_api = plugin_service_api
+        self.artifacts_path = artifacts_path
         self.id = str(uuid.uuid4())
         self.state = 'CREATED'
         self.plugin_configurations = []
@@ -263,6 +265,15 @@ class TaskEngineSession:
                 session['issues'] = result['issues']
                 # If the task is finished, and we just grabbed the final results, then mark it as done
                 if session['state'] == 'FINISHED':
+                    # If the session has artifacts, download them and store them
+                    if session['artifacts']:
+                        try:
+                            url = self.plugin_service_api + "/session/%s/artifacts" % session['id']
+                            response = yield cyclone.httpclient.fetch(url)
+                            with open("%s/%s.zip" % (self.artifacts_path, session['id']), "w") as f:
+                                f.write(response.body)
+                        except Exception as e:
+                            logging.exception("Unable to store scan artifacts: " + str(e))
                     session['_done'] = True                    
                 break
         # If we have more work to do then we schedule ourself again.
@@ -353,11 +364,17 @@ class TaskEngineSession:
 
 class TaskEngine:
 
-    def __init__(self, scans_database, plugin_service_api):
+    def __init__(self, scans_database, plugin_service_api, artifacts_path):
         self._scans_database = scans_database
         self._plugin_service_api = plugin_service_api
+        self._artifacts_path = artifacts_path
         self._sessions = {}
         self._looper = None
+
+        self._artifacts_path = os.path.expanduser(self._artifacts_path)
+        if not os.path.exists(self._artifacts_path):
+            logging.info("Creating scan artifacts directory %s" % self._artifacts_path)
+            os.mkdir(self._artifacts_path)
 
     def get_plan_descriptions(self):
         plans = [{'name': plan['name'], 'description': plan['description']} for plan in PLANS.values()]
@@ -370,7 +387,7 @@ class TaskEngine:
     def create_session(self, plan, configuration):
         plan = copy.deepcopy(plan)
         configuration = copy.deepcopy(configuration)
-        scan = TaskEngineSession(plan, configuration, self._scans_database, self._plugin_service_api)
+        scan = TaskEngineSession(plan, configuration, self._scans_database, self._plugin_service_api, self._artifacts_path)
         yield scan.create()
         self._sessions[scan.id] = scan
 

@@ -209,7 +209,8 @@ class TaskEngineApplication(cyclone.web.Application):
 
         task_engine_settings = dict(plugin_service_api="http://127.0.0.1:8181",
                                     scan_database_type="memory",
-                                    scan_database_location=None)
+                                    scan_database_location=None,
+                                    artifacts_path="/tmp")
 
         for settings_path in (TASK_ENGINE_USER_SETTINGS_PATH, TASK_ENGINE_SYSTEM_SETTINGS_PATH):
             settings_path = os.path.expanduser(settings_path)
@@ -238,7 +239,8 @@ class TaskEngineApplication(cyclone.web.Application):
         
         # Create the Task Engine
 
-        self.task_engine = TaskEngine(self.scan_database, task_engine_settings['plugin_service_api'])
+        self.task_engine = TaskEngine(self.scan_database, task_engine_settings['plugin_service_api'],
+                                      task_engine_settings['artifacts_path'])
 
         # Setup our routes and initialize the Cyclone application
 
