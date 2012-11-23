@@ -65,7 +65,7 @@ if __name__ == "__main__":
         print "Plugin session status:\n"
         
         print "%-12s: %s" % ("session", session_info['id'])
-        print "%-12s: %s" % ("plugin", session_info['plugin_name'])
+        print "%-12s: %s" % ("plugin", session_info['plugin']['name'])
         print "%-12s: %s" % ("state", session_info['state'])
         print "%-12s: %s" % ("duration", time.strftime('%H:%M:%S', time.gmtime(session_info['duration'])))
         if session_info['progress']:
@@ -86,3 +86,5 @@ if __name__ == "__main__":
         print "\nPlugin session results:\n"
         print json.dumps(results_response['issues'], sort_keys=True, indent=4)
         
+        print "\nPlugin session artifacts:\n"
+        print json.dumps(results_response['session']['artifacts'], sort_keys=True, indent=4)
