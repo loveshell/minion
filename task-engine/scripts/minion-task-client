@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import json
+import optparse
 import sys
 import time
 
@@ -12,47 +13,65 @@ import requests
 
 if __name__ == "__main__":
 
-   # minion-plugin-client task-engine-url plan-name configuration
+   # minion-task-client -a task-engine-url -p plan-name -c configuration
 
-   task_engine_url = sys.argv[1]
-   plan_name = sys.argv[2]
-   configuration = sys.argv[3]
+   parser = optparse.OptionParser()
+   parser.add_option("-v", "--verbose", action="store_true")
+   parser.add_option("-a", "--api", default="http://127.0.0.1:8282")
+   parser.add_option("-p", "--plan-name")
+   parser.add_option("-c", "--configuration")
+
+   (options, args) = parser.parse_args()
+
+   task_engine_url = options.api
+   plan_name = options.plan_name
+   configuration = options.configuration
 
    r = requests.put(task_engine_url + "/scan/create/" + plan_name, data=configuration)
    r.raise_for_status()
-   print "CREATE RESPONSE", r.text
+   #print "CREATE RESPONSE", r.text
    create_response = r.json
 
    if create_response['success']:
 
       url = task_engine_url + "/scan/" + create_response['scan']['id'] + "/state"
-      print "START REQUEST", url
       r = requests.post(url, 'START')
       r.raise_for_status()
-      #print "START RESPONSE", r.text
       start_response = r.json
 
       if start_response['success']:
 
-         token = None
          while True:
 
-            url = task_engine_url + "/scan/" + create_response['scan']['id'] + "/results"
-            if token: url += "?token=" + token
-            print "RESULTS REQUEST", url
+            url = task_engine_url + "/scan/" + create_response['scan']['id']
             r = requests.get(url)
             r.raise_for_status()
-            print "STATUS RESPONSE", r.text
-            results_response = r.json
+            scan_response = r.json
 
-            for session in results_response['scan']['sessions']:
-               if len(session['issues']) > 0:
-                  print "GOT ISSUES", session['issues']
+            for session in scan_response['scan']['sessions']:
+               print "%s %-20s %s" % (session['id'], session['plugin']['name'], session['state'])
+               
+            all_done = True
+            for session in scan_response['scan']['sessions']:
+               if session['state'] not in ('FINISHED', 'STOPPED', 'ABORTED'):
+                  all_done = False
+                  break
 
-            token = results_response['token']
-            print "TOKEN", token
-            if token is None:
-               print "Token is null, so we are good"
+            if all_done:
                break
 
-            time.sleep(1)
+            print
+            time.sleep(1.0)
+
+      # Print the results
+
+      print "RESULTS:\n"
+
+      url = task_engine_url + "/scan/" + create_response['scan']['id'] + "/results"
+      r = requests.get(url)
+      r.raise_for_status()
+      results_response = r.json
+
+      for session in results_response['scan']['sessions']:
+         for issue in session['issues']:
+            print "%s %s %-12s %s" % (issue['Date'], issue['Id'], issue['Severity'], issue['Summary'])
