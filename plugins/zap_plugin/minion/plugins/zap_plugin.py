@@ -26,7 +26,7 @@ class ZAPPlugin(ExternalProcessPlugin):
         logging.debug("ZAPPlugin.do_configure")
         self.zap_path = self.locate_program(self.ZAP_NAME)
         if self.zap_path is None:
-            raise Exception("Cannot find %s in PATH" % ZAP_NAME)
+            raise Exception("Cannot find %s in PATH" % self.ZAP_NAME)
         # Validate the configuration
         if self.configuration.get('target') is None or len(self.configuration['target']) == 0:
             raise Exception("Missing or invalid target in configuration")
@@ -39,10 +39,9 @@ class ZAPPlugin(ExternalProcessPlugin):
         logging.debug("ZAPPlugin.do_start")
         # Start ZAP in daemon mode
         self.zap_port = self._random_port()
-        self.zap_dir = tempfile.gettempdir() + '/zap_' + str(self.zap_port)
-        args = ['-daemon', '-port', str(self.zap_port), '-dir', self.zap_dir]
+        args = ['-daemon', '-port', str(self.zap_port), '-dir', self.work_directory]
         self.spawn(self.zap_path, args)
-        self.callbacks.report_files([{'id' : 'zaplog', 'name' : 'ZAP log file', 'location' : self.zap_dir + '/zap.log'}])
+        self.report_artifacts("ZAP Output", ["zap.log"])
         
         # Start the main code in a thread
         return deferToThread(self._blocking_zap_main)
