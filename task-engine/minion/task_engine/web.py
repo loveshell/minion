@@ -199,6 +199,34 @@ class ScanResultsHandler(cyclone.web.RequestHandler):
         token = self._generate_token(since, scan_results['sessions'])
         self.finish({ 'success': True, 'scan': scan_results, 'token': token })
 
+class ScanArtifactsHandler(cyclone.web.RequestHandler):
+
+    @inlineCallbacks
+    def get(self, scan_id, session_id):
+
+        # Try to load this from the database. If it is not there then the scan
+        # might be still in progress in which case the task engine has it.
+
+        scan = yield self.application.scan_database.load(scan_id)
+        if scan is None:
+            session = yield task_engine.get_session(scan_id)
+            if session is not None:
+                scan = session.summary()
+
+        if scan is None:
+            raise cyclone.web.HTTPError(404)
+        
+        artifacts_path = os.path.expanduser(self.settings['task_engine']['artifacts_path']) + "/" + session_id + ".zip"
+        print "LOOKING AT", artifacts_path
+        if not os.path.exists(artifacts_path):
+            raise cyclone.web.HTTPError(404)            
+
+        with open(artifacts_path) as f:
+            data = f.read()
+            self.set_header("Content-Type", "application/zip")
+            self.set_header("Content-Length", str(len(data)))
+            self.finish(data)        
+        
 
 class TaskEngineApplication(cyclone.web.Application):
 
@@ -250,6 +278,7 @@ class TaskEngineApplication(cyclone.web.Application):
             (r"/scan/create/([a-z0-9_-]+)", CreateScanHandler),
             (r"/scan/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/state", ChangeScanStateHandler),
             (r"/scan/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/results", ScanResultsHandler),
+            (r"/scan/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/artifacts/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", ScanArtifactsHandler),
             (r"/scan/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", ScanHandler),
         ]
 
