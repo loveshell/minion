@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from funfactory.log import log_cef
 from django.core.context_processors import csrf
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotFound
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
@@ -11,7 +11,7 @@ from django.core import serializers
 from mobility.decorators import mobile_template
 from session_csrf import anonymous_csrf
 from models import Scan
-import logging, bleach, commonware, urllib2, json, time, requests, urlparse, re
+import logging, os, bleach, commonware, urllib2, json, time, requests, urlparse, re
 
 log = commonware.log.getLogger('playdoh')
 
@@ -200,3 +200,30 @@ def xhr_scan_status(request):
         message = {'success': False, 'error': 'internal-error'}
         return HttpResponse(json.dumps(message), mimetype="application/json")
         
+def download_artifacts(request, scan_id, session_id):
+
+    # Only authenticated users can make this call
+
+    if not request.user.is_authenticated():
+        return HttpResponseNotFound()
+
+    # See if the logged in user actually owns the scan
+
+    try:
+        scan = Scan.objects.get(scan_creator=request.user,scan_id=scan_id)
+    except ObjectDoesNotExist as e:
+        return HttpResponseNotFound()
+    except Exception as e:
+        logging.exception("Unexpected response from Scan.object.get({},{})".format(request.user.email,scan_id))
+        return HttpResponseNotFound()
+
+    # Grab the artifact from the task engine. This is not ideal. Not sure how to do pass through.
+    
+    r = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id + '/artifacts/' + session_id)
+    if r.status != 200:
+        return HttpResponseNotFound()
+
+    response = HttpResponse(r.content, content_type="application/zip")
+    response['Content-Disposition'] = 'attachment; filename="%s.zip"' % session_id
+    response['Content-Length'] = len(r.content)
+    return response

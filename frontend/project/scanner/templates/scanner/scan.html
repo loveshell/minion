@@ -204,6 +204,30 @@
             </tr>
         </tbody>
         </table>
+
+        {% if finished %}
+
+        <table class="table table-bordered table-details">
+        <thead class="details_table_expander">
+            <tr>
+                <th>
+                    <h2><span class="plus_minus">+</span> Scan Artifacts</h2>
+                </th>
+            </tr>
+        </thead>
+        <tbody class="details_table_area">
+          {% for session in results.sessions %}
+            {% if session.artifacts %}
+              <tr>
+                <td>{{session.plugin.name}} ({{session.plugin.version}})</td>
+                <td><a class="btn btn-info" href="/scan/{{results.id}}/session/{{session.id}}/artifacts">Download</a></td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+        </table>
+
+        {% endif %}
                 
         {% if not finished %}
             <script type="text/javascript">
