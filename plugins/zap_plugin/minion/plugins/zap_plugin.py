@@ -106,7 +106,7 @@ class ZAPPlugin(ExternalProcessPlugin):
     
             logging.debug('Scan completed? %s' % self.zap.scan_status[0])
             
-            self.report_results(self.get_results())
+            self.report_issues(self.get_results())
             
             logging.info('Scan completed, shutting down')
             self.zap.shutdown()
