@@ -43,5 +43,10 @@ class GarmrPlugin(ExternalProcessPlugin):
         self.output += data
 
     def do_process_ended(self, status):
-        self.callbacks.report_results(list(parse_garmr_output(self.output)))
-        self.callbacks.report_finish()
+        if self.stopping and status == 9:
+            self.report_finish("STOPPED")
+        elif status == 0:
+            self.callbacks.report_issues(list(parse_garmr_output(self.output)))
+            self.callbacks.report_finish()
+        else:
+            self.report_finish("FAILED")
