@@ -47,6 +47,8 @@ class IPlugin(zope.interface.Interface):
 
     # Plugin lifecycle methods. These are all called by the PluginRunner.
 
+    def do_configure():
+        """Configure the plugin"""
     def do_start():
         """Start the plugin"""
     def do_stop():
@@ -77,6 +79,9 @@ class AbstractPlugin:
     EXIT_STATE_FAILED   = "FAILED"
     
     # Plugin methods. By default these do nothing.
+
+    def do_configure(self):
+        pass
 
     def do_start(self):
         self.report_finish()

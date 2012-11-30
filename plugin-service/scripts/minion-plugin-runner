@@ -206,6 +206,7 @@ class PluginRunner:
         def configurationCallback(configuration):
             try:
                 self.plugin.configuration = json.loads(configuration)
+                self.plugin.do_configure()
             except Exception as e:
                 logging.exception("Failed to configure plugin %s" % str(self.plugin))
                 self.callbacks.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FAILED)
