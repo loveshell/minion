@@ -139,12 +139,17 @@ class NMAPPlugin(ExternalProcessPlugin):
         self.nmap_stderr += data
 
     def do_process_ended(self, status):
-        with open("nmap.stdout.txt", "w") as f:
-            f.write(self.nmap_stdout)
-        with open("nmap.stderr.txt", "w") as f:
-            f.write(self.nmap_stderr)
-        self.report_artifacts("NMAP Output", ["nmap.stdout.txt", "nmap.stderr.txt"])
-        services = parse_nmap_output(self.nmap_stdout)
-        issues = services_to_issues(services)
-        self.callbacks.report_results(issues)
-        self.callbacks.report_finish()
+        if self.stopping and status == 9:
+            self.report_finish("STOPPED")
+        elif status == 0:
+            with open("nmap.stdout.txt", "w") as f:
+                f.write(self.nmap_stdout)
+            with open("nmap.stderr.txt", "w") as f:
+                f.write(self.nmap_stderr)
+            self.report_artifacts("NMAP Output", ["nmap.stdout.txt", "nmap.stderr.txt"])
+            services = parse_nmap_output(self.nmap_stdout)
+            issues = services_to_issues(services)
+            self.callbacks.report_issues(issues)
+            self.callbacks.report_finish()
+        else:
+            self.report_finish("FAILED")
