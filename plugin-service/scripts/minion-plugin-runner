@@ -10,6 +10,7 @@ import os
 import sys
 import importlib
 import optparse
+import signal
 
 import zope.interface
 from twisted.internet import reactor
@@ -39,31 +40,26 @@ class SimpleCallbacks:
 
     def __init__(self, session_configuration):
         self.session_configuration = session_configuration
-        self.results = []
+        self.issues = []
         self.artifacts = {}
 
     def report_progress(self, percentage, description = ""):
         if description: description = " (" + description + ")"
-        logging.debug("Plugin reported progress: %d%%%s" % (percentage, description))
+        logging.debug("SimpleCallbacks.report_progress: %d%%%s" % (percentage, description))
 
-    def report_results(self, results):
-        logging.debug("Plugin reported results: %s" % str(list(results)))
-        self.results += results
+    def report_issues(self, issues):
+        logging.debug("SimpleCallbacks.report_issues: %s" % str(list(issues)))
+        self.issues += issues
 
     def report_errors(self, errors):
-        logging.debug("Plugin reported errors: %s" % str(list(errors)))
+        logging.debug("SimpleCallbacks.report_errors: %s" % str(list(errors)))
 
     def report_artifacts(self, name, paths):
-        logging.debug("Plugin reported files: %s %s" % (name, str(paths)))
+        logging.debug("SimpleCallbacks.report_artifacts: %s %s" % (name, str(paths)))
         self.artifacts.setdefault(name, list()).append(paths)
 
-    def report_finish(self):
-        logging.debug("Plugin is finished")
-        print json.dumps(self.results, indent=4, sort_keys=True)
-        reactor.stop()
-
-    def report_abort(self, exit_code = 1):
-        self.runner.exit_code = exit_code
+    def report_finish(self, exit_code = "FINISHED"):
+        logging.debug("SimpleCallbacks.report_finish exit_code=%s" % exit_code)
         reactor.stop()
 
     def configuration(self):
@@ -144,14 +140,13 @@ class PluginServiceCallbacks:
     def report_progress(self, percentage, description = ""):
         deferToThread(self._report_progress, percentage, description)        
     
-    def _report_results(self, results):
-        results = list(results)
-        logging.debug("PluginServiceCallbacks.report_results: " + str(results))
-        self.semaphore.run(self._post_async, "/session/%s/report/results" % self.plugin_session_id, results)
-        logging.debug("PluginServiceCallbacks.report_results DONE")
+    def _report_issues(self, issues):
+        issues = list(issues)
+        logging.debug("PluginServiceCallbacks.report_issues: " + str(issues))
+        self.semaphore.run(self._post_async, "/session/%s/report/issues" % self.plugin_session_id, issues)
 
-    def report_results(self,results):
-        deferToThread(self._report_results, results)
+    def report_issues(self, issues):
+        deferToThread(self._report_issues, issues)
 
     def _report_artifacts(self, name, paths):
         artifacts = [{ "name": name, "paths": paths }]
@@ -169,22 +164,14 @@ class PluginServiceCallbacks:
     def report_errors(self, errors):
         deferToThread(self._report_errors, errors)
 
-    def _report_finish(self):
-        logging.debug("PluginServiceCallbacks.report_finish")
-        self.semaphore.run(self._post_async, "/session/%s/report/finish" % self.plugin_session_id, {})
+    def _report_finish(self, exit_code = "FINISHED"):
+        logging.debug("PluginServiceCallbacks.report_finish exit_code=%s" % exit_code)
+        data = {'state':exit_code}
+        self.semaphore.run(self._post_async, "/session/%s/report/finish" % self.plugin_session_id, data)
         self.semaphore.run(self._stop_reactor_async)
 
-    def report_finish(self):
-        deferToThread(self._report_finish)
-                
-    def _report_abort(self, exit_code = 1):
-        logging.debug("PluginServiceCallbacks.report_abort: %d" % exit_code)
-        # TODO Don't allow any any more calls after this. Enforce this.
-        self.runner.exit_code = exit_code
-        self.semaphore.run(self._stop_reactor_async)
-
-    def report_abort(self, exit_code = 1):
-        deferToThread(self._report_abort, exit_code)
+    def report_finish(self, exit_code = "FINISHED"):
+        deferToThread(self._report_finish, exit_code=exit_code)
     
     def configuration(self):
         logging.debug("PluginServiceCallbacks.configuration")
@@ -200,7 +187,6 @@ class PluginRunner:
         self.plugin_module_name = plugin_module_name
         self.plugin_class_name = plugin_class_name
         self.work_directory = work_directory
-        self.exit_code = 0
 
         try:
             self.plugin_module = importlib.import_module(self.plugin_module_name)
@@ -220,20 +206,26 @@ class PluginRunner:
         def configurationCallback(configuration):
             try:
                 self.plugin.configuration = json.loads(configuration)
-                self.plugin.do_configure()
             except Exception as e:
                 logging.exception("Failed to configure plugin %s" % str(self.plugin))
-                self.callbacks.report_abort(exit_code = AbstractPlugin.EXIT_CODE_FAILED)
+                self.callbacks.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FAILED)
             try:
                 self.plugin.do_start()
             except Exception as e:
                 logging.exception("Failed to start plugin %s" % str(self.plugin))
-                self.callbacks.report_abort(exit_code = AbstractPlugin.EXIT_CODE_FAILED)
+                self.callbacks.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FAILED)
         
         deferred = self.callbacks.configuration()
         deferred.addCallback(configurationCallback)
 
-        
+    def stop(self):
+        logging.debug("PluginRunner.stop")
+        try:
+            self.plugin.stopping = True
+            self.plugin.do_stop()
+        except Exception as e:
+            logging.exception("Exception while executing do_stop: " + str(e))
+
 #
 # plugin-runner.py <module.Plugin>
 #
@@ -263,12 +255,16 @@ if __name__ == "__main__":
     else:
         callbacks = SimpleCallbacks(options.configuration)
 
+    logging.debug("This is the minion-plugin-runner pid=%d" % os.getpid())
+
     runner = PluginRunner(reactor, callbacks, plugin_module_name, plugin_class_name, options.work_directory)
     runner.run()
 
-    reactor.run()
-    
-    # When the plugin is done, we check if it registered any files to save. If it did then we create a zip
-    # file like $WORK_DIR_ROOT/$SESSION_ID.zip containing the files it registered.
+    # Install signal handlers for USR1 and USR2 which we will receive
+    # when the plugin service wants to stop or kill us.
 
-    sys.exit(runner.exit_code)
+    signal.signal(30, lambda signum, frame: reactor.callFromThread(runner.stop))
+
+    reactor.run()
+
+    sys.exit(0)

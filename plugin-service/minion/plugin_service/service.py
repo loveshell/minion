@@ -53,15 +53,11 @@ class PluginRunnerProcessProtocol(protocol.ProcessProtocol):
                     zip.close()
                 except Exception as e:
                     logging.exception("Failed to create artifacts zip file: " + str(e))
+            # TODO Is this the right thing to do now that we set the state from /session/id/report/finish ?
             self.plugin_session.state = 'FINISHED'
         elif isinstance(reason.value, ProcessTerminated):
-            exit_code = reason.value.status / 256
-            if exit_code == AbstractPlugin.EXIT_CODE_ABORTED:
-                self.plugin_session.state = 'ABORTED' # User aborted
-            elif exit_code == AbstractPlugin.EXIT_CODE_FAILED:
-                self.plugin_session.state = 'FAILED'  # Failed because of an exception usually
-            else:
-                self.plugin_session.state = 'FAILED'  # ??? Can this happen if the plugin service catches all?
+            # TODO Is this the right thing to do now that we set the state from /session/id/report/finish ?
+            self.plugin_session.state = 'FAILED'
 
 class PluginSession:
 
@@ -100,11 +96,31 @@ class PluginSession:
         self.process = reactor.spawnProcess(protocol, "minion-plugin-runner", arguments, environment, path=self.work_directory)
         self.state = 'STARTED'
 
-    def stop(self):
-        logging.debug("PluginSession %s %s stop()" % (self.id, self.plugin_name))
+    #
+    # This is called by the user of the plugin-service by setting the state of
+    # a session to STOPPED. If we are only CREATED then we move immediately to
+    # STOPPED. If we are STARTED then we send a USR1 signal to the plugin-runner
+    # and let it stop.
+    #
+    # TODO This could be improved by starting a timer to forcibly kill
+    #      the plugin-runner if it does not stop in time.
+    #
 
-    def terminate(self):
-        logging.debug("PluginSession %s %s terminate()" % (self.id, self.plugin_name))
+    def stop(self):
+        if self.state == 'CREATED':
+            self.state = 'STOPPED'
+        elif self.state == 'STARTED':
+            self.process.signalProcess(30) # USR1
+            self.state = 'STOPPING'
+
+    #
+    # This is called by the plugin-runner through the /session/ID/report/results api. It
+    # simply collects the reported issues.
+    #
+    # TODO I just realized that the ID generation should actually
+    #      happen in the plugin-runner and not here. Otherwise it
+    #      is not possible to submit updated issues later on.
+    #
 
     def add_results(self, results):
         # Add a timestamp to the results. This is not super accurate but that is ok, it is
@@ -115,6 +131,19 @@ class PluginSession:
         for result in results:
             result['Id'] = str(uuid.uuid4())
         self.results += results
+
+    #
+    # This is called by the plugin-runner through the /session/ID/finish api. It
+    # is used to tell the plugin-service that a session has finished with a
+    # specific status. After this is received, the session is done and even if
+    # the plugin makes calls, we reject them. TODO That last bit is not yet
+    # implemented.
+    #
+
+    def finish(self, result):
+        state = result['state']
+        if state in ('FINISHED', 'STOPPED', 'FAILED'):
+            self.state = state            
 
     #
     # Add artifacts to this session. The format is an array that

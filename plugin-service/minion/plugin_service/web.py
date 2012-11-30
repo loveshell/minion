@@ -39,7 +39,8 @@ class CreatePluginSessionHandler(cyclone.web.RequestHandler):
 class PutPluginSessionStateHandler(cyclone.web.RequestHandler):
     def put(self, session_id):
         state = self.request.body
-        if state not in ('START', 'STOP', 'TERMINATE'):
+        logging.debug("Putting state %s" % state)
+        if state not in ('START', 'STOP'):
             self.finish({'success': False, 'error': 'unknown-state'})
             return
         plugin_service = self.application.plugin_service
@@ -53,15 +54,10 @@ class PutPluginSessionStateHandler(cyclone.web.RequestHandler):
                 return
             session.start()
         elif state == 'STOP':
-            if session.state != 'STARTED':
+            if session.state not in ('STARTED', 'CREATED'):
                 self.finish({'success': False, 'error': 'unknown-state-transition'})
                 return
             session.stop()
-        elif state == 'TERMINATE':
-            if session.state != 'STARTED':
-                self.finish({'success': False, 'error': 'unknown-state-transition'})
-                return
-            session.terminate()
         self.finish({'success': True})
 
 class GetPluginSessionHandler(cyclone.web.RequestHandler):
@@ -125,7 +121,7 @@ class PluginRunnerReportProgressHandler(cyclone.web.RequestHandler):
         session.progress = progress
         self.finish({'success':True})
 
-class PluginRunnerReportResultsHandler(cyclone.web.RequestHandler):
+class PluginRunnerReportIssuesHandler(cyclone.web.RequestHandler):
 
     def post(self, session_id):
         plugin_service = self.application.plugin_service
@@ -172,8 +168,9 @@ class PluginRunnerReportFinishHandler(cyclone.web.RequestHandler):
         if not session:
             self.finish({'success': False, 'error': 'no-such-session'})
             return
-        body = self.request.body
-        logging.debug("Received finish from plugin session %s: %s" % (session,body))
+        result = json.loads(self.request.body)
+        session.finish(result)
+        logging.debug("Received finish from plugin session %s: %s" % (session,str(result)))
         self.finish({'success':True})
         
 
@@ -208,7 +205,6 @@ class PluginServiceApplication(cyclone.web.Application):
 
         self.plugin_service = PluginService(plugin_service_settings['work_directory_root'])
 
-        from minion.plugins.basic import AbortedPlugin
         from minion.plugins.basic import ExceptionPlugin
         from minion.plugins.basic import FailedPlugin
         from minion.plugins.basic import HSTSPlugin
@@ -218,8 +214,8 @@ class PluginServiceApplication(cyclone.web.Application):
         from minion.plugins.basic import LongRunningPlugin
         from minion.plugins.basic import XFrameOptionsPlugin
         from minion.plugins.basic import ReportGeneratingPlugin
+        from minion.plugins.basic import SimpleExternalPlugin
 
-        self.plugin_service.register_plugin(AbortedPlugin)
         self.plugin_service.register_plugin(ExceptionPlugin)
         self.plugin_service.register_plugin(FailedPlugin)
         self.plugin_service.register_plugin(HSTSPlugin)
@@ -229,6 +225,7 @@ class PluginServiceApplication(cyclone.web.Application):
         self.plugin_service.register_plugin(LongRunningPlugin)
         self.plugin_service.register_plugin(XFrameOptionsPlugin)
         self.plugin_service.register_plugin(ReportGeneratingPlugin)
+        self.plugin_service.register_plugin(SimpleExternalPlugin)
 
         try:
             from minion.plugins.nmap import NMAPPlugin
@@ -264,7 +261,7 @@ class PluginServiceApplication(cyclone.web.Application):
             # Plugin Runner API
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/configuration", PluginRunnerGetConfigurationHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/progress", PluginRunnerReportProgressHandler),
-            (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/results", PluginRunnerReportResultsHandler),
+            (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/issues", PluginRunnerReportIssuesHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/artifacts", PluginRunnerReportArtifactsHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/errors", PluginRunnerReportErrorsHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/report/finish", PluginRunnerReportFinishHandler),

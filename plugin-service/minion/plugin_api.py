@@ -22,16 +22,14 @@ class IPluginRunnerCallbacks(zope.interface.Interface):
 
     def report_progress(percentage, description):
         """This long running plugin has made some progress"""
-    def report_results(results):
-        """Plugin has results to report."""
+    def report_issues(issues):
+        """Plugin has issues to report."""
     def report_errors(errors):
         """Plugin has errors to report."""
     def report_artifacts(name, paths):
         """Plugin has files available."""
-    def report_finish():
+    def report_finish(exit_code = None):
         """Plugin is done"""
-    def report_abort(exit_code = 1):
-        """Signal the plugin container that we need to abort. Process will exit."""
 
 
 class IPlugin(zope.interface.Interface):
@@ -44,21 +42,15 @@ class IPlugin(zope.interface.Interface):
 
     callbacks = zope.interface.Attribute("""The callbacks to send data back""")
     reactor = zope.interface.Attribute("""The reactor this plugin in running in""")
-    site = zope.interface.Attribute("""The site to scan""")
+    configuration = zope.interface.Attribute("""The configuration""")
     work_directory = zope.interface.Attribute("""The path to the work directory""")
 
     # Plugin lifecycle methods. These are all called by the PluginRunner.
 
     def do_start():
         """Start the plugin"""
-    def do_start():
-        """Start the plugin"""
-    def do_suspend():
-        """Suspend the plugin"""
-    def do_resume():
-        """Resume the plugin"""
-    def do_terminate():
-        """Terminate the plugin"""
+    def do_stop():
+        """Stop the plugin"""
 
 
 class AbstractPlugin:
@@ -77,31 +69,28 @@ class AbstractPlugin:
         return getattr(cls, "PLUGIN_VERSION", "0.0")
 
     zope.interface.implements(IPlugin, IPluginRunnerCallbacks)
+
+    # Plugins can finish in three states: succesfully, stopped and failed.
+
+    EXIT_STATE_FINISHED = "FINISHED"
+    EXIT_STATE_STOPPED  = "STOPPED"
+    EXIT_STATE_FAILED   = "FAILED"
     
     # Plugin methods. By default these do nothing.
 
-    def do_configure(self):
-        pass
-
     def do_start(self):
         self.report_finish()
-    
-    def do_suspend(self):
-        pass
 
-    def do_resume(self):
+    def do_stop(self):
         pass
     
-    def do_terminate(self):
-        pass
-
     # These are simply mapped to the callbacks for convenience
 
     def report_progress(self, percentage, description):
         self.callbacks.report_progress(percentage, description)
 
-    def report_results(self, results):
-        self.callbacks.report_results(results)
+    def report_issues(self, issues):
+        self.callbacks.report_issues(issues)
 
     def report_errors(self, errors):
         self.callbacks.report_errors(errors)
@@ -109,37 +98,45 @@ class AbstractPlugin:
     def report_artifacts(self, name, paths):
         self.callbacks.report_artifacts(name, paths)
 
-    def report_abort(self, exit_code = 1):
-        self.callbacks.report_abort(exit_code)
-
-    def report_finish(self):
-        self.callbacks.report_finish()
-
-    EXIT_CODE_SUCCESS = 0
-    EXIT_CODE_ABORTED = 1
-    EXIT_CODE_FAILED  = 2
+    def report_finish(self, exit_code=EXIT_STATE_FINISHED):
+        self.callbacks.report_finish(exit_code=exit_code)
 
 
 class BlockingPlugin(AbstractPlugin):
 
     """
-    Plugin that needs to run blocking code. It executes do_run() in a thread. It is
-    not expected to support suspend/resume/terminate.
+    Plugin that needs to run blocking code. It executes do_run() in a
+    thread. When asked to stop it simply sets the stopped instance
+    variable. This variable can be checked from the thread. If that
+    is not sufficuent then a different strategy can be implemented
+    by overriding do_stop and doing something different.
     """
+
+    def __init__(self):
+        self.stopped = False
 
     def do_run(self):
         logging.error("You forgot to override BlockingPlugin.run()")
 
     def _finish_with_success(self, result):
         logging.debug("BlockingPlugin._finish_with_success")
-        self.callbacks.report_finish()
+        if self.stopping:
+            self.report_finish(exit_code = AbstractPlugin.EXIT_STATE_STOPPED)
+        else:
+            self.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FINISHED)
 
     def _finish_with_failure(self, failure):
         logging.error("BlockingPlugin._finish_with_failure: " + str(failure))
-        self.report_abort(AbstractPlugin.EXIT_CODE_FAILED)
+        self.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FAILED)
 
     def do_start(self):
-        return deferToThread(self.do_run).addCallback(self._finish_with_success).addErrback(self._finish_with_failure)
+        deferred = deferToThread(self.do_run)
+        deferred.addCallback(self._finish_with_success)
+        deferred.addErrback(self._finish_with_failure)
+        return deferred
+
+    def do_stop(self):
+        self.stopped = True
         
 
 class ExternalProcessProtocol(ProcessProtocol):
@@ -154,25 +151,44 @@ class ExternalProcessProtocol(ProcessProtocol):
         self.plugin = plugin
 
     def outReceived(self, data):
-        self.plugin.do_process_stdout(data)
+        try:
+            self.plugin.do_process_stdout(data)
+        except Exception as e:
+            logging.exception("Plugin threw an exception in do_process_stdout: " + str(e))
+            raise
 
     def errReceived(self, data):
-        self.plugin.do_process_stderr(data)
+        try:
+            self.plugin.do_process_stderr(data)
+        except Exception as e:
+            logging.exception("Plugin threw an exception in do_process_stderr: " + str(e))
+            raise
 
     def processEnded(self, reason):
-        if isinstance(reason.value, ProcessDone):
+        logging.debug("ExternalProcessProtocol.processEnded: " + str(reason.value))
+        if isinstance(reason.value, ProcessTerminated):
             try:
                 self.plugin.do_process_ended(reason.value.status)
             except Exception as e:
-                logging.exception("Plugin threw an exception in do_process_ended")
-                self.plugin.callbacks.report_finish()
+                logging.exception("Plugin threw an exception in do_process_ended: " + str(e))
+        elif isinstance(reason.value, ProcessDone):
+            try:
+                self.plugin.do_process_ended(reason.value.status)
+            except Exception as e:
+                logging.exception("Plugin threw an exception in do_process_ended: " + str(e))
 
 class ExternalProcessPlugin(AbstractPlugin):
     
     """
     Plugin that spawns an external tool. This makes it simple to execute tools like
-    nmap. The default behaviour of do_terminate() is to simply kill the external tool.
+    nmap.
+
+    The default behaviour of do_stop() is to simply kill the external tool. When the
+    tool is killed and exits, 
     """
+
+    def __init__(self):
+        self.stopping = False
 
     def locate_program(self, program_name):
         for path in os.getenv('PATH').split(os.pathsep):
@@ -187,7 +203,11 @@ class ExternalProcessPlugin(AbstractPlugin):
         self.process = reactor.spawnProcess(protocol, path, [name] + arguments)
 
     def do_process_ended(self, status):
-        self.callbacks.report_finish()
+        logging.debug("ExternalProcessPlugin.do_process_ended")
+        if self.stopping:
+            self.report_finish("STOPPED")
+        else:
+            self.report_finish()
 
     def do_process_stdout(self, data):
         pass
@@ -195,6 +215,7 @@ class ExternalProcessPlugin(AbstractPlugin):
     def do_process_stderr(self, data):
         pass
 
-    def do_terminate(self):
-        if self.process:
-            self.process.signalProcess('KILL')
+    def do_stop(self):
+        logging.debug("ExternalProcessPlugin.do_stop")
+        self.stopping = True
+        self.process.signalProcess('KILL')
