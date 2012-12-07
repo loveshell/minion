@@ -45,12 +45,19 @@ class PluginRunnerProcessProtocol(protocol.ProcessProtocol):
             if self.plugin_session.artifacts:
                 try:
                     logging.debug("Opening zip file %s" % self.plugin_session.artifacts_path())
-                    zip = zipfile.ZipFile(self.plugin_session.artifacts_path(), "w" )
-                    for name,paths in self.plugin_session.artifacts.items():
-                        for path in paths:
-                            logging.debug("Zipping %s to %s" % (self.plugin_session.work_directory, path))
-                            zip.write(os.path.join(self.plugin_session.work_directory, path), path, zipfile.ZIP_DEFLATED)
-                    zip.close()
+                    os.chdir(self.plugin_session.work_directory) # This is cheating a little but it makes path handling easier
+                    with zipfile.ZipFile(self.plugin_session.artifacts_path(), "w") as zip:
+                        for name,paths in self.plugin_session.artifacts.items():
+                            for path in paths:
+                                if os.path.isfile(path):
+                                    logging.debug("Zipping %s to %s" % (path, path))
+                                    zip.write(path, path, zipfile.ZIP_DEFLATED)
+                                elif os.path.isdir(path):
+                                    for base, dirs, files in os.walk(path):
+                                        for file in files:
+                                            fn = os.path.join(base, file)
+                                            logging.debug("Zipping %s to %s" % (fn, fn))
+                                            zip.write(fn, fn, zipfile.ZIP_DEFLATED)
                 except Exception as e:
                     logging.exception("Failed to create artifacts zip file: " + str(e))
             # TODO Is this the right thing to do now that we set the state from /session/id/report/finish ?
