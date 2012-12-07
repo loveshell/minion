@@ -221,6 +221,20 @@ def download_artifacts(request, scan_id, session_id):
         logging.exception("Unexpected response from Scan.object.get({},{})".format(request.user.email,scan_id))
         return HttpResponseNotFound()
 
+    # See if the user also owns the plugin session. It has to be part of the scan.
+
+    r = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
+    r.raise_for_status()
+    result = r.json
+    if not result.get('success'):
+        return HttpResponseNotFound()
+
+    scan = r.json['scan']
+
+    session = next((s for s in scan['sessions'] if s['id'] == session_id), None)
+    if session is None:
+        return HttpResponseNotFound()
+
     # Grab the artifact from the task engine. This is not ideal. Not sure how to do pass through.
     
     r = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id + '/artifacts/' + session_id)
@@ -228,6 +242,6 @@ def download_artifacts(request, scan_id, session_id):
         return HttpResponseNotFound()
 
     response = HttpResponse(r.content, content_type="application/zip")
-    response['Content-Disposition'] = 'attachment; filename="%s.zip"' % session_id
+    response['Content-Disposition'] = 'attachment; filename="%s-%s.zip"' % (session['plugin']['name'], session_id[0:8])
     response['Content-Length'] = len(r.content)
     return response
