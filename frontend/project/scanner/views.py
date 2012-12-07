@@ -224,7 +224,7 @@ def download_artifacts(request, scan_id, session_id):
     # Grab the artifact from the task engine. This is not ideal. Not sure how to do pass through.
     
     r = requests.get(settings.TASK_ENGINE_URL + '/scan/' + scan_id + '/artifacts/' + session_id)
-    if r.status != 200:
+    if r.status_code != 200:
         return HttpResponseNotFound()
 
     response = HttpResponse(r.content, content_type="application/zip")
