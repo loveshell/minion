@@ -51,7 +51,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                 </tr>
             </table>
         </div>
-        {% if not finished %}
+        {% if results['state'] != 'FINISHED' and results['state'] != 'STOPPED' %}
+	<div id="live-status">
             <script src="{{ static('scanner/js/plugin_results_expand.js') }}"></script>
             <div id="overall_plugin_results_expander">
                 Overall Progress (click to see progress of individual plugins)
@@ -69,6 +70,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                     </div>
                 {% endfor %}
             </div>
+	</div>
         {% endif %}
         
         <script src="{{ static('scanner/js/table_info_expand.js') }}"></script>
@@ -89,11 +91,20 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 		                <tr>
 		                    <th>Current Status:</th>
 		                    <td>
-		                        {% if finished %}
+				        <span id="scan_status_label">
+		                        {% if results['state'] == 'FINISHED' %}
 		                        Scan is finished running.
-		                        {% else %}
-		                            <img id="scanning_gif" src="{{ static('scanner/img/scanning.gif') }}" height="20px" width="20px" /><span id="scan_status_label"> Scan is currently running...</span>
+					{% elif results['state'] == 'STOPPING' %}
+					Scan is stopping.
+					{% elif results['state'] == 'STOPPED' %}
+					Scan has been stopped.
+		                        {% elif results['state'] == 'STARTED' %}
+		                        Scan is currently running ...
 		                        {% endif %}
+					</span>
+					{% if results['state'] == 'STARTED' %}
+					<span id="cancel-scan-button-container" style="{float:right}"><a id="cancel-scan-button" class="btn btn-mini btn-primary">Cancel</a></span>
+					{% endif %}
 		                    </td>
 		                </tr>
 		                <tr>
@@ -211,7 +222,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         </tbody>
         </table>
 
-        {% if finished %}
+        {% if results['state'] == 'FINISHED' or results['state'] == 'STOPPED' %}
 
         <table class="table table-bordered table-details">
         <thead class="details_table_expander">

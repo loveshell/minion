@@ -106,7 +106,7 @@ def scan(request, template=None, scan_id="0"):
         first_results_json = first_results.json
         
         num_high, num_med, num_low, num_info = 0, 0, 0, 0;
-        if first_results_json['scan']['state'] == "FINISHED":
+        if first_results_json['scan']['state'] in ("FINISHED", "STOPPED"):
             for session in first_results_json['scan']['sessions']:
                 for issue in session['issues']:
                     if issue['Severity'] == "High":
@@ -272,4 +272,28 @@ def delete_scan(request):
 
     return redirect('/myscans')
     
+def stop_scan(request):
 
+    # Only authenticated users can make this call
+
+    if not request.user.is_authenticated():
+        return HttpResponse(json.dumps({'success':False}), mimetype="application/json")
+
+    # See if the logged in user actually owns the scan
+
+    scan_id = request.GET.get("scan_id")
+    if not _validate_scan_id(scan_id):
+        return HttpResponse(json.dumps({'success':False}), mimetype="application/json")
+
+    try:
+        scan = Scan.objects.get(scan_creator=request.user,scan_id=scan_id)
+    except ObjectDoesNotExist as e:
+        return HttpResponse(json.dumps({'success':False}), mimetype="application/json")
+    except Exception as e:
+        logging.exception("Unexpected response from Scan.object.get({},{})".format(request.user.email,scan_id))
+        return HttpResponse(json.dumps({'success':False}), mimetype="application/json")
+
+    r = requests.post(settings.TASK_ENGINE_URL + '/scan/' + scan_id + "/state", data='STOP')
+    r.raise_for_status()
+    
+    return HttpResponse(json.dumps(r.json), mimetype="application/json")

@@ -33,7 +33,8 @@ function createResultTable(issue) {
 }
 
 //Runs every x interval to retrieve results from API and update interface appropriately
-function queryUpdate() {
+function queryUpdate()
+{
     $.post("/en-US/xhr_scan_status/", {
 	"csrfmiddlewaretoken": csrfmiddlewaretoken,
         "scan_id":scan_id,
@@ -43,6 +44,39 @@ function queryUpdate() {
         var json_data = jQuery.parseJSON(data);
         var added_overall_progress = 0;
         var num_plugins = 0;    //Use this to divide and get average progress
+
+	// Update the global status
+        
+	var scan = json_data.scan;
+	switch (scan.state) {
+	    case "STARTED":
+                $("#scan_status_label").text("Scan is currently running...");
+	        break;	         
+	    case "FINISHED":
+                $("#scan_status_label").text("Scan is finished running.");
+	        break;
+	    case "STOPPING":
+                $("#scan_status_label").text("Scan is stopping.");
+	        break;
+	    case "STOPPED":
+                $("#scan_status_label").text("Scan has stopped.");
+	        break;
+	    default:
+                $("#scan_status_label").text("Scan has unknown state: " + scan.state);
+	        break;	    
+        }
+
+	// Hide the cancel button if needed
+
+	if (scan.state !== "STARTED") {
+	    $("#cancel-scan-button-container").hide();
+	}
+
+	// If we are finished then hide the live status
+
+	if (scan.state === "FINISHED" || scan.state === "STOPPED") {
+	    $("#live-status").hide();
+	}
         
         $.each(json_data.scan.sessions, function(i, result) {
             
@@ -79,7 +113,7 @@ function queryUpdate() {
             if(result['state'] === "FAILED") {
                 $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
                 progress = 100;
-            } else if(result['state'] === "FINISHED") {
+            } else if(result['state'] === "FINISHED" || result['state'] === "STOPPED") {
                 progress = 100;
             }
             
@@ -101,8 +135,19 @@ function queryUpdate() {
         since_token = json_data["token"];
         if(since_token === null) {
             clearInterval(looping_interval);
-            $("#scanning_gif").hide();
-            $("#scan_status_label").text("Scan is finished running.");
         }
     });
 }
+
+
+$("#cancel-scan-button").click(function() {
+    $("#scan_status_label").text("Scan is stopping.");
+    $.ajax({
+	url: "/stop_scan",
+	method: "POST",
+	data: {	"csrfmiddlewaretoken": csrfmiddlewaretoken,
+		"scan_id":scan_id },
+	success: function(result) {},
+	dataType: "json"
+    });
+});

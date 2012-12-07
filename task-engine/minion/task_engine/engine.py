@@ -517,7 +517,7 @@ class TaskEngine:
             logging.debug("Idling session {}".format(scan_id))
             done = yield session.idle()
             # TODO Should this be done by the client instead? By sending a DELETE /scan/<id> ?
-            if done:
-                logging.debug("TaskEngineSession {} is done, removing it".format(scan_id))
-                del self._sessions[scan_id]
+            #if done:
+            #    logging.debug("TaskEngineSession {} is done, removing it".format(scan_id))
+            #    del self._sessions[scan_id]
 
