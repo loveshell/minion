@@ -85,7 +85,8 @@ class PluginSession:
         
     def start(self):
         logging.debug("PluginSession %s %s start()" % (self.id, self.plugin_name))
-        os.mkdir(self.work_directory)
+        if not os.path.exists(self.work_directory):
+            os.mkdir(self.work_directory)
         protocol = PluginRunnerProcessProtocol(self)
         arguments = ["minion-plugin-runner"]
         if self.debug:

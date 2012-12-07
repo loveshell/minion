@@ -258,6 +258,15 @@ if __name__ == "__main__":
 
     logging.debug("This is the minion-plugin-runner pid=%d" % os.getpid())
 
+    # Setup the work directory if it does not exist yet
+    if not os.path.exists(options.work_directory):
+        try:
+            os.mkdir(options.work_directory)
+        except Exception as e:
+            logging.error("Cannot create work directory (%s): %s" % (options.work_directory, str(e)))
+            sys.exit(1)
+    os.chdir(options.work_directory)
+
     runner = PluginRunner(reactor, callbacks, plugin_module_name, plugin_class_name, options.work_directory)
     runner.run()
 
