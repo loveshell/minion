@@ -145,6 +145,31 @@ class ScanHandler(cyclone.web.RequestHandler):
 
         self.finish({ 'success': True, 'scan': session.summary() })
 
+    @inlineCallbacks
+    def delete(self, scan_id):
+
+        task_engine = self.application.task_engine
+
+        # If this scan is still in progress then we need to stop it
+        # first and then delete it.
+
+        session = yield task_engine.get_session(scan_id)
+        if session is not None:
+            success = yield session.stop(delete=True)
+            self.finish({'success': True})
+            return        
+
+        # The easy case is when the scan is finished and in the
+        # database. We simply delete it and we are done.
+
+        scan = yield self.application.scan_database.load(scan_id)
+        if scan is not None:
+            yield self.application.scan_database.delete(scan_id)
+            self.finish({ 'success': True, 'scan': scan })
+            return
+
+        self.finish({'success': False, 'error': 'no-such-scan'})
+
 class ScanResultsHandler(cyclone.web.RequestHandler):
 
     def _validate_token(self, token):

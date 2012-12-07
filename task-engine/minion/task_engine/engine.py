@@ -284,6 +284,7 @@ class TaskEngineSession:
         self.plugin_configurations = []
         self.semaphore = DeferredSemaphore(1)
         self.plugin_sessions = []
+        self.delete_when_stopped = False
 
     #
     # Return True if all plugins have completed.
@@ -364,10 +365,18 @@ class TaskEngineSession:
             returnValue(False)
         else:
             if self.state == 'STARTED':
+                # We have finished executing all plugins so we
+                # transition to the FINISHED state. We store our
+                # session in the database.
                 self.state = 'FINISHED'
+                result = yield self.database.store(self.summary())
             elif self.state == 'STOPPING':
+                # We have finished stopping so we transition to
+                # STOPPED. If we were asked to delete this session
+                # then simply do not store it in the database.
                 self.state = 'STOPPED'
-            result = yield self.database.store(self.summary())
+                if not self.delete_when_stopped:
+                    result = yield self.database.store(self.summary())
             returnValue(True)
     
     #
@@ -406,7 +415,9 @@ class TaskEngineSession:
     # CREATED state. Set our own state to STOPPING.
     #
 
-    def stop(self):
+    def stop(self, delete=False):
+
+        self.delete_when_stopped = delete
 
         # Don't do anything if we are already STOPPING or STOPPED
         if self.state in ('STOPPING', 'STOPPED'):
@@ -506,7 +517,7 @@ class TaskEngine:
             logging.debug("Idling session {}".format(scan_id))
             done = yield session.idle()
             # TODO Should this be done by the client instead? By sending a DELETE /scan/<id> ?
-            #if done:
-            #    logging.debug("TaskEngineSession {} is done, removing it".format(scan_id))
-            #    del self._sessions[scan_id]
+            if done:
+                logging.debug("TaskEngineSession {} is done, removing it".format(scan_id))
+                del self._sessions[scan_id]
 

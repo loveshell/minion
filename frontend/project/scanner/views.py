@@ -245,3 +245,31 @@ def download_artifacts(request, scan_id, session_id):
     response['Content-Disposition'] = 'attachment; filename="%s-%s.zip"' % (session['plugin']['name'], session_id[0:8])
     response['Content-Length'] = len(r.content)
     return response
+
+def delete_scan(request):
+
+    # Only authenticated users can make this call
+
+    if not request.user.is_authenticated():
+        return redirect('/myscans')
+
+    # See if the logged in user actually owns the scan
+
+    scan_id = request.POST.get("scan_id")
+    if not _validate_scan_id(scan_id):
+        return redirect('/myscans')
+
+    try:
+        scan = Scan.objects.get(scan_creator=request.user,scan_id=scan_id)
+        scan.delete()
+    except ObjectDoesNotExist as e:
+        return redirect('/myscans')
+    except Exception as e:
+        logging.exception("Unexpected response from Scan.object.get({},{})".format(request.user.email,scan_id))
+        return redirect('/myscans')
+
+    r = requests.delete(settings.TASK_ENGINE_URL + '/scan/' + scan_id)
+
+    return redirect('/myscans')
+    
+

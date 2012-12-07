@@ -49,13 +49,19 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                             </form>
                         </td>
                         
-                        <td><a class="btn btn-danger" href="#"><i class="icon-remove icon-white"></i>Delete</a></td>
+                        <td>
+			  <form style="margin: 0px !important;" method="POST" action="/en-US/delete_scan">
+                            <input name="scan_id" type="hidden" value="{{ scan.scan_id }}"/>
+                            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+			    <button type="submit" class="btn btn-danger"><i class="icon-remove icon-white"></i>Delete</a></button>
+			  </form>
+			</td>
                     </tr>
                 {% endfor %}
                 
             </tbody>
         </table>
-        
+
         <h2>Group Scans I Have Access To</h2>
         <table class="table table-bordered table-striped">
             <thead>
