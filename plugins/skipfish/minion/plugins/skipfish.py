@@ -238,6 +238,9 @@ class SkipfishPlugin(ExternalProcessPlugin):
                                            "Summary": SKIPFISH_ISSUE_DESCRIPTIONS[str(issue['type'])],
                                            "URLs": [s['url'] for s in issue['samples']] })
                 self.report_issues(minion_issues)
+                # Add the report and the (updated) dictionary to the artifacts
+                self.report_artifacts("Skipfish Report", [SKIPFISH_REPORT_DIRECTORY])
+                self.report_artifacts("Skipfish Dictionary", [SKIPFISH_DICTIONARY])
             self.report_finish()
         else:
             self.report_finish("FAILED")
