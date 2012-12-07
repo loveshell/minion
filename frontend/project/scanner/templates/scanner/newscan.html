@@ -34,30 +34,9 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
                         {% endfor %}
                     </select>
                     <div id="text_below_plan_dropdown">
-                        <a href="/plans">Click here to view and edit available plans</a>
+                        <a href="/plans">View available plans</a>
                     </div>
                     <button type="submit" class="btn btn-primary">Start Scan</button>
-                </div>
-                <div id="new_scan_advanced_options">
-                    <div id="">
-                        <div id="new_scan_advanced_options_expander"><a href="#">Additional Options</a></div>
-                        <div id="new_scan_advanced_options_hidden">
-                            <div class="control-group">
-                                <label class="control-label" for="input01">Session Cookie Name</label>
-                                <div class="controls">
-                                <input id="input01" class="input-xlarge" type="text">
-                                <p class="help-block">The name of the session cookie used to manage user sessions.</p>
-                                </div>
-                            </div>
-                            <div class="control-group">
-                                <label class="control-label" for="input01">Session Cookie Value</label>
-                                <div class="controls">
-                                <input id="input01" class="input-xlarge" type="text">
-                                
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
             </form>
