@@ -245,6 +245,12 @@ class PluginServiceApplication(cyclone.web.Application):
         except ImportError as e:
             pass        
 
+        try:
+            from minion.plugins.skipfish import SkipfishPlugin
+            self.plugin_service.register_plugin(SkipfishPlugin)
+        except ImportError as e:
+            pass
+
         for plugin in self.plugin_service.plugin_descriptors():
             logging.info("Registered plugin {} v{}".format(plugin['class'], plugin['version']))
 

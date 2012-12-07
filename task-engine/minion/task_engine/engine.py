@@ -191,6 +191,19 @@ PLANS['zap'] = {
     ]
 }
 
+PLANS['skipfish'] = {
+    'name': 'skipfish',
+    'description': 'Run Skipfish.',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.skipfish.SkipfishPlugin',
+            'configuration': {
+                # No special configuration needed
+            }
+        }
+    ]
+}
+
 
 PLUGIN_SERVICE_API = "http://localhost:8181"
 PLUGIN_SERVICE_POLL_INTERVAL = 1.0
