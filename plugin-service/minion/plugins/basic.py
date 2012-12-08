@@ -63,7 +63,10 @@ class HSTSPlugin(BlockingPlugin):
 class LongRunningPlugin(BlockingPlugin):
 
     def do_run(self):
-        time.sleep(15)
+        for n in range(60):
+            if self.stopped:
+                return
+            time.sleep(1)
 
 
 class IncrementalAsyncPlugin(AbstractPlugin):
