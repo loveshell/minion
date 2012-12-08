@@ -216,6 +216,10 @@ class PluginService:
             self.sessions[session.id] = session
             return session
 
+    def delete_session(self, session):
+        if session.id in self.sessions:
+            del self.sessions[session.id]
+
     def register_plugin(self, plugin_class):
         self.plugins[str(plugin_class)] = plugin_class
 

@@ -69,7 +69,7 @@ class PutPluginSessionStateHandler(cyclone.web.RequestHandler):
             session.stop()
         self.finish({'success': True})
 
-class GetPluginSessionHandler(cyclone.web.RequestHandler):
+class PluginSessionHandler(cyclone.web.RequestHandler):
     def get(self, session_id):
         plugin_service = self.application.plugin_service
         session = plugin_service.get_session(session_id)
@@ -77,6 +77,17 @@ class GetPluginSessionHandler(cyclone.web.RequestHandler):
             self.finish({'success': False, 'error': 'no-such-session'})
             return
         self.finish({'success': True, 'session': session.summary()})
+    def delete(self, session_id):
+        plugin_service = self.application.plugin_service
+        session = plugin_service.get_session(session_id)
+        if not session:
+            self.finish({'success': False, 'error': 'no-such-session'})
+            return
+        if session.state not in ('CREATED', 'STOPPED', 'FINISHED', 'FAILED'):
+            self.finish({'success': False, 'error': 'invalid-state'})
+            return
+        plugin_service.delete_session(session)
+        self.finish({'success': True})
 
 class GetPluginSessionResultsHandler(cyclone.web.RequestHandler):
     def get(self, session_id):
@@ -271,7 +282,7 @@ class PluginServiceApplication(cyclone.web.Application):
             (r"/plugin/(.+)", PluginHandler),
             (r"/session/create/(.+)", CreatePluginSessionHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/state", PutPluginSessionStateHandler),
-            (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", GetPluginSessionHandler),
+            (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", PluginSessionHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/results", GetPluginSessionResultsHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/artifacts", GetPluginSessionArtifactsHandler),
             # Plugin Runner API
