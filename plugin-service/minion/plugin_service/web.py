@@ -24,6 +24,15 @@ class PluginsHandler(cyclone.web.RequestHandler):
         plugin_service = self.application.plugin_service
         self.finish({'success': True, 'plugins': plugin_service.plugin_descriptors()})
 
+class PluginHandler(cyclone.web.RequestHandler):
+    def get(self, plugin_name):
+        plugin_service = self.application.plugin_service
+        plugin = plugin_service.get_plugin_descriptor(plugin_name)
+        if not plugin:
+            self.finish({'success': False, 'error': 'no-such-plugin'})
+            return
+        self.finish({'success':True,'plugin':plugin})
+
 class CreatePluginSessionHandler(cyclone.web.RequestHandler):
     def put(self, plugin_name):
         plugin_service = self.application.plugin_service
@@ -259,6 +268,7 @@ class PluginServiceApplication(cyclone.web.Application):
         handlers = [
             # Public API
             (r"/plugins", PluginsHandler),
+            (r"/plugin/(.+)", PluginHandler),
             (r"/session/create/(.+)", CreatePluginSessionHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/state", PutPluginSessionStateHandler),
             (r"/session/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})", GetPluginSessionHandler),

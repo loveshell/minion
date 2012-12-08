@@ -297,3 +297,18 @@ def stop_scan(request):
     r.raise_for_status()
     
     return HttpResponse(json.dumps(r.json), mimetype="application/json")
+
+# Reverse AJAX :-) I find it much easier to render HTML with a Jingo template
+# instead of on the JavaScript side.
+
+@mobile_template('scanner/plan_details.html')
+def plan_details(request, template=None):
+
+    # Only authenticated users can make this call
+
+    if not request.user.is_authenticated():
+        return HttpResponse(json.dumps({'success':False}), mimetype="application/json")
+
+    r = requests.get(settings.TASK_ENGINE_URL + '/plan/' + request.GET['plan_name'])
+    r.raise_for_status()
+    return render(request, template, r.json)

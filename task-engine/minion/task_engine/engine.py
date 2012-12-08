@@ -27,30 +27,35 @@ PLANS['external'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.basic.SimpleExternalPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.basic.XFrameOptionsPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.basic.HSTSPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.basic.IncrementalBlockingPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.basic.IncrementalAsyncPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
@@ -64,18 +69,21 @@ PLANS['tickle'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.basic.HSTSPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.basic.XFrameOptionsPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
+            'description': "Only scan for known ports",
             'configuration': {
                 'ports': "U:53,111,137,T:21-25,139,8080,8443"
             }
@@ -89,6 +97,7 @@ PLANS['nmapfull'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
@@ -102,6 +111,7 @@ PLANS['garmr'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
@@ -115,12 +125,14 @@ PLANS['scratch'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
+            'description': "Do a full port scan",
             'configuration': {
                 # No special configuration needed
             }
@@ -134,18 +146,21 @@ PLANS['stomp'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
+            'description': "Do a full port scan",
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
+            'description': "Spider",
             'configuration': {
                 # No special configuration needed
             }
@@ -159,18 +174,21 @@ PLANS['test'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.basic.IssueGeneratingPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.basic.IncrementalAsyncPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
         {
             'plugin_name': 'minion.plugins.basic.LongRunningPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
@@ -184,6 +202,7 @@ PLANS['zap'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
@@ -197,6 +216,7 @@ PLANS['skipfish'] = {
     'workflow': [
         {
             'plugin_name': 'minion.plugins.skipfish.SkipfishPlugin',
+            'description': None,
             'configuration': {
                 # No special configuration needed
             }
@@ -486,8 +506,16 @@ class TaskEngine:
         plans = [{'name': plan['name'], 'description': plan['description']} for plan in PLANS.values()]
         return deferLater(reactor, 0, lambda: plans)
 
+    @inlineCallbacks
     def get_plan(self, plan_name):
-        return deferLater(reactor, 0, lambda: PLANS.get(plan_name))
+        plan = PLANS.get(plan_name)
+        if plan is not None:
+            # Loop over all the plugins part of this plan and get their extended info
+            for w in plan['workflow']:
+                url = "%s/plugin/%s" % (self._plugin_service_api, w['plugin_name'])
+                response = yield getPage(url.encode('ascii')).addCallback(json.loads)
+                w['plugin'] = response['plugin']
+        returnValue(plan)
 
     @inlineCallbacks
     def create_session(self, plan, configuration):
