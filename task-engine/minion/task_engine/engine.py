@@ -397,6 +397,16 @@ class TaskEngineSession:
                 self.state = 'STOPPED'
                 if not self.delete_when_stopped:
                     result = yield self.database.store(self.summary())
+            # Always delete all the plugin sessions, since they are
+            # not needed anymore.
+            for session in self.plugin_sessions:
+                url = self.plugin_service_api + "/session/%s" % session['id']
+                try:
+                    result = yield getPage(url.encode('ascii'), method='DELETE').addCallback(json.loads)
+                    if not result['success']:
+                        logging.error("Failed to delete plugin session %s: %s" % (session['id'], result['error']))
+                except Exception as e:
+                    logging.exception("Unable to delete plugin session %s: %s" % (session['id'], str(e)))
             returnValue(True)
     
     #
@@ -544,6 +554,8 @@ class TaskEngine:
         for scan_id,session in self._sessions.items():
             logging.debug("Idling session {}".format(scan_id))
             done = yield session.idle()
+            if done:
+                self._looper.stop()
             # TODO Should this be done by the client instead? By sending a DELETE /scan/<id> ?
             #if done:
             #    logging.debug("TaskEngineSession {} is done, removing it".format(scan_id))
