@@ -125,7 +125,7 @@ class BlockingPlugin(AbstractPlugin):
 
     def _finish_with_success(self, result):
         logging.debug("BlockingPlugin._finish_with_success")
-        if self.stopping:
+        if self.stopped:
             self.report_finish(exit_code = AbstractPlugin.EXIT_STATE_STOPPED)
         else:
             self.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FINISHED)
