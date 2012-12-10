@@ -547,7 +547,10 @@ class TaskEngine:
         # else we load it from the database.
         session = self._sessions.get(scan_id)
         return deferLater(reactor, 0, lambda: session)
-            
+    
+    def delete_session(self, scan_id):
+        if scan_id in self._sessions:
+            del self._sessions[scan_id]
 
     @inlineCallbacks
     def _idleSessions(self):
@@ -556,8 +559,9 @@ class TaskEngine:
             done = yield session.idle()
             if done:
                 self._looper.stop()
-            # TODO Should this be done by the client instead? By sending a DELETE /scan/<id> ?
-            #if done:
-            #    logging.debug("TaskEngineSession {} is done, removing it".format(scan_id))
-            #    del self._sessions[scan_id]
-
+            # We delete the session after a minute. This gives web clients who are polling
+            # enough time to poll the final results. This is not the best solution but it
+            # will do until we have changed the persistence code in the task engine.
+            if done:
+                deferLater(reactor, 60, self.delete_session, scan_id)
+                
