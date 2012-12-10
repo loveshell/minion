@@ -30,7 +30,7 @@ class GarmrPlugin(ExternalProcessPlugin):
     PLUGIN_VERSION = "0.1"
 
     GARMR_NAME = "garmr"
-    GARMR_ARGS = ['-r', 'json', '-o', '/dev/stdout', '-u']
+    GARMR_ARGS = ['-r', 'json', '-o', '/dev/stdout', '-e', 'StrictTransportSecurityPresent', '-u']
 
     def do_start(self):
         garmr_path = self.locate_program(self.GARMR_NAME)
