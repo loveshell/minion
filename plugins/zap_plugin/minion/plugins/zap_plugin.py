@@ -62,8 +62,7 @@ class ZAPPlugin(ExternalProcessPlugin):
                 try:
                     self.zap.urlopen(target)
                     break
-                except:
-                    logging.exception("Failed to zap.urlopen")
+                except IOError as e:
                     time.sleep(2)
             
             # Give the sites tree a chance to get updated
