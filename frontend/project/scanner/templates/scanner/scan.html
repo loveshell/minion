@@ -100,6 +100,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 					Scan has been stopped.
 		                        {% elif results['state'] == 'STARTED' %}
 		                        Scan is currently running ...
+		                        {% elif results['state'] == 'FAILED' %}
+		                        Scan has finished with failures.
 		                        {% endif %}
 					</span>
 					{% if results['state'] == 'STARTED' %}

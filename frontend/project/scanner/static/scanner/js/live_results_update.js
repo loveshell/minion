@@ -61,6 +61,9 @@ function queryUpdate()
 	    case "STOPPED":
                 $("#scan_status_label").text("Scan has stopped.");
 	        break;
+	    case "FAILED":
+                $("#scan_status_label").text("Scan has finished with failures.");
+	        break;
 	    default:
                 $("#scan_status_label").text("Scan has unknown state: " + scan.state);
 	        break;	    

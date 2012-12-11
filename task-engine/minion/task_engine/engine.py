@@ -327,87 +327,110 @@ class TaskEngineSession:
     def idle(self):
         logging.debug("TaskEngineSession._periodic_session_task")
 
-
-        # Loop over all sessions and stop them if they are not already stopped.
-
-        if self.state == 'STOPPING':
+        def stop_sessions():
             for session in self.plugin_sessions:
-                # We are only interested in those sessions that are not yet FINISHED, FAILED or STOPPED
-                if session['state'] not in ('FINISHED', 'FAILED', 'STOPPED'):
-                    # Get the latest session state
-                    url = "%s/session/%s" % (self.plugin_service_api, session['id'])
-                    response = yield getPage(url.encode('ascii')).addCallback(json.loads)
-                    session.update(response['session'])
-                    # If this session is not STOPPING then we stop is
-                    logging.debug("TaskEngineSession._periodic_session_task - Going to start " + session['plugin']['class'])
-                    url = self.plugin_service_api + "/session/%s/state" % session['id']
-                    result = yield getPage(url.encode('ascii'), method='PUT', postdata='STOP').addCallback(json.loads)
+                # We are only interested in those sessions that are 
+                if session['state'] not in ('FINISHED', 'FAILED', 'STOPPED', 'STOPPING'):
+                    try:
+                        # Get the latest session state
+                        url = "%s/session/%s" % (self.plugin_service_api, session['id'])
+                        response = yield getPage(url.encode('ascii')).addCallback(json.loads)
+                        session.update(response['session'])
+                        # If this session is not already STOPPING then we stop it
+                        if session['state'] != 'STOPPING':
+                            logging.debug("TaskEngineSession._periodic_session_task - Going to stop " + session['plugin']['class'])
+                            url = self.plugin_service_api + "/session/%s/state" % session['id']
+                            result = yield getPage(url.encode('ascii'), method='PUT', postdata='STOP').addCallback(json.loads)
+                    except Exception as e:
+                        logging.exception("Failed to stop session %s: %s" % (session['id'], str(e)))
+                        # Mark the session as FAILED so that we won't look at it again
+                        session['state'] = 'FAILED'
 
-        if self.state == 'STARTED':        
-            # Loop over all sessions and figure out what to do next for them. We do only one thing
-            # at a time to minimize calls down to the plugin service.
-            for session in self.plugin_sessions:            
-                # Update the session so that we have the most recent info
-                if session['state'] not in ('FINISHED', 'STOPPED', 'FAILED'):
-                    url = "%s/session/%s" % (self.plugin_service_api, session['id'])
-                    response = yield getPage(url.encode('ascii')).addCallback(json.loads)
-                    session.update(response['session'])
-                # Now decide what to do based on the session state
-                if session['state'] == 'CREATED':
-                    # Start this plugin session
-                    logging.debug("TaskEngineSession._periodic_session_task - Going to start " + session['plugin']['class'])
-                    url = self.plugin_service_api + "/session/%s/state" % session['id']
-                    result = yield getPage(url.encode('ascii'), method='PUT', postdata='START').addCallback(json.loads)
-                    break
-                elif session['state'] in ('STARTED', 'FINISHED') and session.get('_done') != True:
-                    # If the status is STARTED or FINISHED then collect the results periodically
-                    logging.debug("TaskEngineSession._periodic_session_task - Going to get results from " + session['plugin']['class'])
-                    url = self.plugin_service_api + "/session/%s/results" % session['id']
-                    result = yield getPage(url.encode('ascii')).addCallback(json.loads)
-                    session['issues'] = result['issues']
-                    # If the task is finished, and we just grabbed the final results, then mark it as done
-                    if session['state'] == 'FINISHED':
-                        # If the session has artifacts, download them and store them
-                        if session['artifacts']:
-                            try:
-                                url = self.plugin_service_api + "/session/%s/artifacts" % session['id']
-                                response = yield cyclone.httpclient.fetch(url)
-                                with open("%s/%s.zip" % (self.artifacts_path, session['id']), "w") as f:
-                                    f.write(response.body)
-                            except Exception as e:
-                                logging.exception("Unable to store scan artifacts: " + str(e))
-                        session['_done'] = True                    
-                    break
+        try:
+            # Loop over all sessions and stop them if they are not already stopped.
 
-        # If we have more work to do then we schedule ourself again.
+            if self.state == 'STOPPING':
+                stop_sessions()
 
-        if not self._all_sessions_are_done():
-            returnValue(False)
-        else:
             if self.state == 'STARTED':
-                # We have finished executing all plugins so we
-                # transition to the FINISHED state. We store our
-                # session in the database.
-                self.state = 'FINISHED'
-                result = yield self.database.store(self.summary())
-            elif self.state == 'STOPPING':
-                # We have finished stopping so we transition to
-                # STOPPED. If we were asked to delete this session
-                # then simply do not store it in the database.
-                self.state = 'STOPPED'
-                if not self.delete_when_stopped:
+                # Loop over all sessions and figure out what to do next for them. We do only one thing
+                # at a time to minimize calls down to the plugin service.
+                for session in self.plugin_sessions:
+                    try:
+                        # Update the session so that we have the most recent info
+                        if session['state'] not in ('FINISHED', 'STOPPED', 'FAILED'):
+                            url = "%s/session/%s" % (self.plugin_service_api, session['id'])
+                            response = yield getPage(url.encode('ascii')).addCallback(json.loads)
+                            session.update(response['session'])
+                        # Now decide what to do based on the session state
+                        if session['state'] == 'CREATED':
+                            # Start this plugin session
+                            logging.debug("TaskEngineSession._periodic_session_task - Going to start " + session['plugin']['class'])
+                            url = self.plugin_service_api + "/session/%s/state" % session['id']
+                            result = yield getPage(url.encode('ascii'), method='PUT', postdata='START').addCallback(json.loads)
+                            break
+                        elif session['state'] in ('STARTED', 'FINISHED') and session.get('_done') != True:
+                            # If the status is STARTED or FINISHED then collect the results periodically
+                            logging.debug("TaskEngineSession._periodic_session_task - Going to get results from " + session['plugin']['class'])
+                            url = self.plugin_service_api + "/session/%s/results" % session['id']
+                            result = yield getPage(url.encode('ascii')).addCallback(json.loads)
+                            session['issues'] = result['issues']
+                            # If the task is finished, and we just grabbed the final results, then mark it as done
+                            if session['state'] == 'FINISHED':
+                                # If the session has artifacts, download them and store them
+                                if session['artifacts']:
+                                    try:
+                                        url = self.plugin_service_api + "/session/%s/artifacts" % session['id']
+                                        response = yield cyclone.httpclient.fetch(url)
+                                        with open("%s/%s.zip" % (self.artifacts_path, session['id']), "w") as f:
+                                            f.write(response.body)
+                                    except Exception as e:
+                                        logging.exception("Unable to store scan artifacts: " + str(e))
+                                session['_done'] = True
+                            break
+                    except Exception as e:
+                        logging.exception("Failed to idle session %s: %s" % (session['id'], str(e)))
+                        # Mark the session as FAILED so that we won't look at it again
+                        session['state'] = 'FAILED'
+
+            # If we have more work to do then we schedule ourself again.
+
+            if not self._all_sessions_are_done():
+                returnValue(False)
+            else:
+                if self.state == 'STARTED':
+                    # We have finished executing all plugins so we
+                    # transition to the FINISHED state. We store our
+                    # session in the database.
+                    self.state = 'FINISHED'
+                    # If any of the sessions failed, then we also set our scan to failed
+                    for session in self.plugin_sessions:
+                        if session['state'] == 'FAILED':
+                            self.state = 'FAILED'
+                            break
                     result = yield self.database.store(self.summary())
-            # Always delete all the plugin sessions, since they are
-            # not needed anymore.
-            for session in self.plugin_sessions:
-                url = self.plugin_service_api + "/session/%s" % session['id']
-                try:
-                    result = yield getPage(url.encode('ascii'), method='DELETE').addCallback(json.loads)
-                    if not result['success']:
-                        logging.error("Failed to delete plugin session %s: %s" % (session['id'], result['error']))
-                except Exception as e:
-                    logging.exception("Unable to delete plugin session %s: %s" % (session['id'], str(e)))
-            returnValue(True)
+                elif self.state == 'STOPPING':
+                    # We have finished stopping so we transition to
+                    # STOPPED. If we were asked to delete this session
+                    # then simply do not store it in the database.
+                    self.state = 'STOPPED'
+                    if not self.delete_when_stopped:
+                        result = yield self.database.store(self.summary())
+                # Always delete all the plugin sessions, since they are
+                # not needed anymore.
+                for session in self.plugin_sessions:
+                    url = self.plugin_service_api + "/session/%s" % session['id']
+                    try:
+                        result = yield getPage(url.encode('ascii'), method='DELETE').addCallback(json.loads)
+                        if not result['success']:
+                            logging.error("Failed to delete plugin session %s: %s" % (session['id'], result['error']))
+                    except Exception as e:
+                        logging.exception("Unable to delete plugin session %s: %s" % (session['id'], str(e)))
+                returnValue(True)
+        except Exception as e:
+            logging.exception("Uncaught exception in _idle_tasks: " + str(e))
+            returnValue(False)
+            
     
     #
     # Start the scan. We change the status to STARTED and call our periodic
