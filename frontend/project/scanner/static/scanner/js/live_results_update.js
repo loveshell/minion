@@ -106,14 +106,10 @@ function queryUpdate()
             
             //Update progress bars
             var div_id = result['id'];
-            //Try catch in case null is returned for progress in plugins that don't support percentage
-            try {
-                var progress = parseInt(result['progress']) || 0;
-            } catch (err) {
-                var progress = 0;
-            }
+
+	    var progress = result.progress ? result.progress.percentage : 0;
             
-            if(result['state'] === "FAILED") {
+            if (result['state'] === "FAILED") {
                 $("#"+div_id+"_prog").removeClass("progress-info").addClass("progress-danger");
                 progress = 100;
             } else if(result['state'] === "FINISHED" || result['state'] === "STOPPED") {
@@ -123,6 +119,7 @@ function queryUpdate()
             added_overall_progress += progress;
             num_plugins += 1;
             
+	    console.log("Setting progress for " + div_id + " to " + progress.toString());
             $("#" + div_id).css("width", progress.toString() + "%");
         });
         
