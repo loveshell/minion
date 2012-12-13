@@ -347,9 +347,12 @@ class TaskEngineSession:
                         session['state'] = 'FAILED'
 
         try:
-            # Loop over all sessions and stop them if they are not already stopped.
+            # Skip sessions that are in their final finished state
+            if self.state in ('FINISHED', 'FAILED', 'STOPPED'):
+                return
 
             if self.state == 'STOPPING':
+                # Loop over all sessions and stop them if they are not already stopped.
                 stop_sessions()
 
             if self.state == 'STARTED':
@@ -580,8 +583,6 @@ class TaskEngine:
         for scan_id,session in self._sessions.items():
             logging.debug("Idling session {}".format(scan_id))
             done = yield session.idle()
-            if done:
-                self._looper.stop()
             # We delete the session after a minute. This gives web clients who are polling
             # enough time to poll the final results. This is not the best solution but it
             # will do until we have changed the persistence code in the task engine.
