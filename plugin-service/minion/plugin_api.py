@@ -159,15 +159,15 @@ class ExternalProcessProtocol(ProcessProtocol):
         try:
             self.plugin.do_process_stdout(data)
         except Exception as e:
-            logging.exception("Plugin threw an exception in do_process_stdout: " + str(e))
-            raise
-
+            logging.exception("Plugin threw an uncaught exception in do_process_stdout: " + str(e))
+            self.plugin.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FAILED)
+        
     def errReceived(self, data):
         try:
             self.plugin.do_process_stderr(data)
         except Exception as e:
-            logging.exception("Plugin threw an exception in do_process_stderr: " + str(e))
-            raise
+            logging.exception("Plugin threw an uncaught exception in do_process_stderr: " + str(e))
+            self.plugin.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FAILED)
 
     def processEnded(self, reason):
         logging.debug("ExternalProcessProtocol.processEnded: " + str(reason.value))
@@ -175,12 +175,14 @@ class ExternalProcessProtocol(ProcessProtocol):
             try:
                 self.plugin.do_process_ended(reason.value.status)
             except Exception as e:
-                logging.exception("Plugin threw an exception in do_process_ended: " + str(e))
+                logging.exception("Plugin threw an uncaught exception in do_process_ended: " + str(e))
+                self.plugin.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FAILED)
         elif isinstance(reason.value, ProcessDone):
             try:
                 self.plugin.do_process_ended(reason.value.status)
             except Exception as e:
-                logging.exception("Plugin threw an exception in do_process_ended: " + str(e))
+                logging.exception("Plugin threw an uncaught exception in do_process_ended: " + str(e))
+                self.plugin.report_finish(exit_code = AbstractPlugin.EXIT_STATE_FAILED)
 
 class ExternalProcessPlugin(AbstractPlugin):
     
