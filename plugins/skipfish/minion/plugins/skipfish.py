@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import json
+import ast
 import os
 import shutil
 
@@ -161,10 +161,11 @@ class SkipfishPlugin(ExternalProcessPlugin):
 
     def _process_skipfish_samples(self, samples_path):
         # The samples.js file needs to be tranformed into something
-        # that we can parse more easily. So we turn it into JSON with
-        # some string replacements. TODO This is dependend on the
-        # specific skipfish version so we should probably pin it down
-        # somehow.
+        # that we can parse more easily. So we turn it into a Python
+        # dictionary with some string replacements and then let the
+        # AST module parse it in a safe way that does not allow code
+        # execution.. TODO This is dependend on the specific skipfish
+        # version so we should probably pin it down somehow.
         with open(samples_path) as f:
             samples = f.read()
             samples = samples.replace("'", '"')
@@ -173,9 +174,8 @@ class SkipfishPlugin(ExternalProcessPlugin):
             samples = samples.replace('var issue_samples =', '"issue_samples":')
             samples = samples.replace('];', ']', 1)
             samples = '{\n' + samples + '}'
-            samples = json.loads(samples)
-            return samples
-
+            return ast.literal_eval(samples)
+        
     def _locate_dictionary(self, dictionary_name):
         # Special case for /dev/null
         if os.path.isabs(dictionary_name):
