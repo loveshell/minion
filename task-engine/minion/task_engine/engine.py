@@ -21,48 +21,6 @@ import cyclone.httpclient
 
 PLANS = {}
 
-PLANS['external'] = {
-    'name': 'external',
-    'description': 'Runs the SimpleExternalPlugin (Just for testing).',
-    'workflow': [
-        {
-            'plugin_name': 'minion.plugins.basic.SimpleExternalPlugin',
-            'description': None,
-            'configuration': {
-                # No special configuration needed
-            }
-        },
-        {
-            'plugin_name': 'minion.plugins.basic.XFrameOptionsPlugin',
-            'description': None,
-            'configuration': {
-                # No special configuration needed
-            }
-        },
-        {
-            'plugin_name': 'minion.plugins.basic.HSTSPlugin',
-            'description': None,
-            'configuration': {
-                # No special configuration needed
-            }
-        },
-        {
-            'plugin_name': 'minion.plugins.basic.IncrementalBlockingPlugin',
-            'description': None,
-            'configuration': {
-                # No special configuration needed
-            }
-        },
-        {
-            'plugin_name': 'minion.plugins.basic.IncrementalAsyncPlugin',
-            'description': None,
-            'configuration': {
-                # No special configuration needed
-            }
-        },
-    ]
-}
-
 PLANS['tickle'] = {
     'name': 'tickle',
     'description': 'Run basic tests and do a very basic port scan using NMAP.',
@@ -86,34 +44,6 @@ PLANS['tickle'] = {
             'description': "Only scan for known ports",
             'configuration': {
                 'ports': "U:53,111,137,T:21-25,139,8080,8443"
-            }
-        }
-    ]
-}
-
-PLANS['nmapfull'] = {
-    'name': 'nmapfull',
-    'description': 'Run just a full portmap scan with NMAP.',
-    'workflow': [
-        {
-            'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
-            'description': None,
-            'configuration': {
-                # No special configuration needed
-            }
-        }
-    ]
-}
-
-PLANS['garmr'] = {
-    'name': 'garmr',
-    'description': 'Run just a Garmr scan.',
-    'workflow': [
-        {
-            'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
-            'description': None,
-            'configuration': {
-                # No special configuration needed
             }
         }
     ]
@@ -168,52 +98,31 @@ PLANS['stomp'] = {
     ]
 }
 
-PLANS['test'] = {
-    'name': 'test',
-    'description': 'Run the IssueGeneratingPlugin.',
+PLANS['punch'] = {
+    'name': 'punch',
+    'description': 'Run Garmr, NMAP, ZAP and Skipfish.',
     'workflow': [
         {
-            'plugin_name': 'minion.plugins.basic.IssueGeneratingPlugin',
-            'description': None,
+            'plugin_name': 'minion.plugins.garmr.GarmrPlugin',
+            'description': "Do a full port scan",
             'configuration': {
                 # No special configuration needed
             }
         },
         {
-            'plugin_name': 'minion.plugins.basic.IncrementalAsyncPlugin',
+            'plugin_name': 'minion.plugins.nmap.NMAPPlugin',
             'description': None,
             'configuration': {
                 # No special configuration needed
             }
         },
-        {
-            'plugin_name': 'minion.plugins.basic.LongRunningPlugin',
-            'description': None,
-            'configuration': {
-                # No special configuration needed
-            }
-        },
-    ]
-}
-
-PLANS['zap'] = {
-    'name': 'zap',
-    'description': 'Run ZAP spider and active scanner.',
-    'workflow': [
         {
             'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
-            'description': None,
+            'description': "Spider",
             'configuration': {
                 # No special configuration needed
             }
-        }
-    ]
-}
-
-PLANS['skipfish'] = {
-    'name': 'skipfish',
-    'description': 'Run Skipfish.',
-    'workflow': [
+        },
         {
             'plugin_name': 'minion.plugins.skipfish.SkipfishPlugin',
             'description': None,
