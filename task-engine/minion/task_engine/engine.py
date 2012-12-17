@@ -92,7 +92,7 @@ PLANS['stomp'] = {
             'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
             'description': "Spider",
             'configuration': {
-                # No special configuration needed
+                'scan': True
             }
         }
     ]
@@ -120,7 +120,7 @@ PLANS['punch'] = {
             'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
             'description': "Spider",
             'configuration': {
-                # No special configuration needed
+                'scan': True
             }
         },
         {
@@ -128,6 +128,34 @@ PLANS['punch'] = {
             'description': None,
             'configuration': {
                 # No special configuration needed
+            }
+        }
+    ]
+}
+
+PLANS['zapspider'] = {
+    'name': 'zapspider',
+    'description': 'Run the ZAP Spider',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
+            'description': "Run the ZAP Spider",
+            'configuration': {
+                'scan': False
+            }
+        }
+    ]
+}
+
+PLANS['zapfull'] = {
+    'name': 'zapfull',
+    'description': 'Run the ZAP Spider and Scanner',
+    'workflow': [
+        {
+            'plugin_name': 'minion.plugins.zap_plugin.ZAPPlugin',
+            'description': "Run the ZAP Spider and Scanner",
+            'configuration': {
+                'scan': True
             }
         }
     ]

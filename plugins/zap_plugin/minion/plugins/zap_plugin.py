@@ -67,7 +67,7 @@ class ZAPPlugin(ExternalProcessPlugin):
             
             # Give the sites tree a chance to get updated
             time.sleep(2)
-            
+
             logging.info('Spidering target %s' % target)
             self.report_progress(34, 'Spidering target')
             self.zap.start_spider(target)
@@ -86,20 +86,21 @@ class ZAPPlugin(ExternalProcessPlugin):
 
             self.report_progress(67, 'Scanning target')
 
-            # Give the passive scanner a chance to finish
-            time.sleep(5)
-            
-            logging.debug('Scanning target %s' % target)
-            self.zap.start_scan(target)
-            time.sleep(5)
-            while True:
-                scan_progress = int(self.zap.spider_status[0]) 
-                logging.debug('Scan progress %d' % scan_progress)
-                progress = 67 + (scan_progress / 3)
-                self.report_progress(progress, 'Scanning target')
-                if scan_progress == 100:
-                    break
+            if self.configuration.get('scan'):
+                # Give the passive scanner a chance to finish
                 time.sleep(5)
+
+                logging.debug('Scanning target %s' % target)
+                self.zap.start_scan(target)
+                time.sleep(5)
+                while True:
+                    scan_progress = int(self.zap.spider_status[0])
+                    logging.debug('Scan progress %d' % scan_progress)
+                    progress = 67 + (scan_progress / 3)
+                    self.report_progress(progress, 'Scanning target')
+                    if scan_progress == 100:
+                        break
+                    time.sleep(5)
 
             self.report_progress(100, 'Completing scan')
     
