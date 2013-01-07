@@ -5,8 +5,8 @@
 from setuptools import setup
 
 install_requires = [
-    'requests==0.14.2',
-    'cyclone==1.0-rc13'
+    'requests==1.0.4',
+    'cyclone==1.0'
 ]
 
 setup(name="minion.plugin_service",
