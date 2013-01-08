@@ -11,6 +11,7 @@ import sys
 import importlib
 import optparse
 import signal
+import uuid
 
 import zope.interface
 from twisted.internet import reactor
@@ -179,11 +180,12 @@ class PluginServiceCallbacks:
     
 class PluginRunner:
 
-    def __init__(self, reactor, callbacks, plugin_module_name, plugin_class_name, work_directory):
+    def __init__(self, reactor, callbacks, plugin_session_id, plugin_module_name, plugin_class_name, work_directory):
 
         self.callbacks = callbacks
         self.callbacks.runner = self
         self.reactor = reactor
+        self.plugin_session_id = plugin_session_id
         self.plugin_module_name = plugin_module_name
         self.plugin_class_name = plugin_class_name
         self.work_directory = work_directory
@@ -237,7 +239,10 @@ if __name__ == "__main__":
     parser.add_option("-d", "--debug", action="store_true")
     parser.add_option("-c", "--configuration")
     parser.add_option("-p", "--plugin")
-    parser.add_option("-w", "--work-directory", default="/tmp")
+    parser.add_option("-w", "--work-root", default="/tmp") # Where session directories are stored
+    parser.add_option("--session-id")
+    parser.add_option("--mode", default="standalone")
+    parser.add_option("--plugin-service-api")
     
     (options, args) = parser.parse_args()
     
@@ -246,28 +251,46 @@ if __name__ == "__main__":
     parts = plugin_name.split('.')
     plugin_module_name = '.'.join(parts[:-1])
     plugin_class_name = parts[-1]
+    plugin_session_id = None
 
     level = logging.DEBUG if options.debug else logging.INFO    
     logging.basicConfig(level=level, format='%(asctime)s %(levelname).1s %(message)s', datefmt='%y-%m-%d %H:%M:%S')
     logging.debug("Running %s/%s" % (plugin_module_name, plugin_class_name))
 
-    if 'MINION_PLUGIN_SERVICE_API' in os.environ and 'MINION_PLUGIN_SESSION_ID' in os.environ:
-        callbacks = PluginServiceCallbacks(os.getenv('MINION_PLUGIN_SERVICE_API'), os.getenv('MINION_PLUGIN_SESSION_ID'))
-    else:
+    if options.mode == "plugin-service":
+        # When running from the plugin-service, the session id is mandatory
+        if not options.session_id:
+            logging.error("The session id needs to be specified if running from the plugin service")
+            sys.exit(1)
+        # When running from the plugin-service, the plugin-service-api
+        if not options.plugin_service_api:
+            logging.error("The plugin-service api needs to be specified if running from the plugin service")
+            sys.exit(1)
+        plugin_session_id = options.session_id
+        callbacks = PluginServiceCallbacks(options.plugin_service_api, options.session_id)
+
+    if options.mode == "standalone":
+        # If running standalone, we generate a session id
+        plugin_session_id = str(uuid.uuid4())
         callbacks = SimpleCallbacks(options.configuration)
 
-    logging.debug("This is the minion-plugin-runner pid=%d" % os.getpid())
-
     # Setup the work directory if it does not exist yet
-    if not os.path.exists(options.work_directory):
+    work_directory = os.path.join(options.work_root, plugin_session_id)
+    if not os.path.exists(work_directory):
         try:
-            os.mkdir(options.work_directory)
+            os.mkdir(work_directory)
         except Exception as e:
             logging.error("Cannot create work directory (%s): %s" % (options.work_directory, str(e)))
             sys.exit(1)
-    os.chdir(options.work_directory)
 
-    runner = PluginRunner(reactor, callbacks, plugin_module_name, plugin_class_name, options.work_directory)
+    # Change into the work directory
+    os.chdir(work_directory)
+
+    logging.debug("This is the minion-plugin-runner pid=%d" % os.getpid())
+    logging.debug("We are going to run plugin %s in work directory %s" % (plugin_name, work_directory))
+    logging.debug("Plugin configuration is %s" % str(options.configuration))
+
+    runner = PluginRunner(reactor, callbacks, plugin_session_id, plugin_module_name, plugin_class_name, work_directory)
     runner.run()
 
     # Install signal handlers for USR1 and USR2 which we will receive

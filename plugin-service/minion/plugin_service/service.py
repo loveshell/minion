@@ -97,10 +97,13 @@ class PluginSession:
         protocol = PluginRunnerProcessProtocol(self)
         arguments = ["minion-plugin-runner"]
         if self.debug:
-            arguments += ["-d"]
-        arguments += ["-p", self.plugin_name]
-        arguments += ["-w", self.work_directory]
-        environment = { 'MINION_PLUGIN_SERVICE_API': 'http://127.0.0.1:8181', 'MINION_PLUGIN_SESSION_ID': self.id, 'PATH': os.getenv('PATH') }
+            arguments += ["--debug"]
+        arguments += ["--plugin", self.plugin_name]
+        arguments += ["--work-root", self.work_directory_root]
+        arguments += ["--session-id", self.id]
+        arguments += ["--mode", "plugin-service"]
+        arguments += ["--plugin-service-api", "http://127.0.0.1:8181"]
+        environment = { 'PATH': os.getenv('PATH') }
         self.process = reactor.spawnProcess(protocol, "minion-plugin-runner", arguments, environment, path=self.work_directory)
         self.state = 'STARTED'
 
