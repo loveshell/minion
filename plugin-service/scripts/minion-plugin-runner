@@ -197,6 +197,7 @@ class PluginRunner:
             self.plugin.reactor = self.reactor
             self.plugin.callbacks = self.callbacks
             self.plugin.work_directory = self.work_directory
+            self.plugin.session_id = self.plugin_session_id
         except Exception as e:
             logging.exception("Failed to load plugin %s/%s" % (self.plugin_module_name, self.plugin_class_name))
             sys.exit(1)

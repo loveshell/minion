@@ -44,6 +44,7 @@ class IPlugin(zope.interface.Interface):
     reactor = zope.interface.Attribute("""The reactor this plugin in running in""")
     configuration = zope.interface.Attribute("""The configuration""")
     work_directory = zope.interface.Attribute("""The path to the work directory""")
+    session_id = zope.interface.Attribute("""The unique session id for this plugin""")
 
     # Plugin lifecycle methods. These are all called by the PluginRunner.
 
