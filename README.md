@@ -112,7 +112,7 @@ Start the frontend in a new shell window:
 
 License
 -------
-This software is licensed under the [New BSD License][BSD]. For more
+This software is licensed under the [MPL License]. For more
 information, read the file ``LICENSE``.
 
 [BSD]: http://creativecommons.org/licenses/BSD/
