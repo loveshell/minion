@@ -15,10 +15,10 @@ from minion.plugin_api import ExternalProcessPlugin
 SKIPFISH_TOOL_NAME = "skipfish"
 
 # Min version of skipfish that we support
-SKIPFISH_MIN_VERSION = "2.02b"
+SKIPFISH_MIN_VERSION = "2.02"
 
 # Max version of skipfish that we support
-SKIPFISH_MAX_VERSION = "2.10b"
+SKIPFISH_MAX_VERSION = "2.10"
 
 # Name of the file where stdout is written
 SKIPFISH_STDOUT_LOG = "skipfish.stdout.txt"
