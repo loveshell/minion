@@ -5,12 +5,20 @@
 
 import ast
 import os
+import re
+import subprocess
 import shutil
 
 from minion.plugin_api import ExternalProcessPlugin
 
 # Name of the skipfish binary
 SKIPFISH_TOOL_NAME = "skipfish"
+
+# Min version of skipfish that we support
+SKIPFISH_MIN_VERSION = "2.02b"
+
+# Max version of skipfish that we support
+SKIPFISH_MAX_VERSION = "2.10b"
 
 # Name of the file where stdout is written
 SKIPFISH_STDOUT_LOG = "skipfish.stdout.txt"
@@ -159,6 +167,14 @@ class SkipfishPlugin(ExternalProcessPlugin):
     PLUGIN_NAME = "Skipfish"
     PLUGIN_VERSION = "0.1"
 
+    def _skipfish_version(self, path):
+        p = subprocess.Popen([path, "-h"], stdout=subprocess.PIPE)
+        while not p.returncode:
+            line = p.stdout.readline()
+            m = re.match("^skipfish version (\\d+\.\\d+)b", line)
+            if m:
+                return m.group(1)
+
     def _process_skipfish_samples(self, samples_path):
         # The samples.js file needs to be tranformed into something
         # that we can parse more easily. So we turn it into a Python
@@ -192,6 +208,11 @@ class SkipfishPlugin(ExternalProcessPlugin):
         if skipfish_path is None:
             path = os.environ['PATH']
             raise Exception("Cannot find (%s) in PATH (%s)" % (SKIPFISH_TOOL_NAME,path))
+        skipfish_version = self._skipfish_version(skipfish_path)
+        if skipfish_version is None:
+            raise Exception("Unable to discover the version of Skipfish at " + skipfish_path)
+        if skipfish_version < SKIPFISH_MIN_VERSION or skipfish_version > SKIPFISH_MAX_VERSION:
+            raise Exception("Unknown Skipfish version. We only support %sb - %sb" % (SKIPFISH_MIN_VERSION, SKIPFISH_MAX_VERSION))
         # See if a good preset was specified, or use our default
         preset = self.configuration.get('preset') or SKIPFISH_DEFAULT_PRESET
         if preset not in SKIPFISH_PRESETS:
@@ -206,7 +227,10 @@ class SkipfishPlugin(ExternalProcessPlugin):
         # Run skipfish as a spawned process
         args = SKIPFISH_BASE_OPTIONS
         args += config['options']
-        args += ["-W", SKIPFISH_DICTIONARY]
+        if skipfish_version >= "2.04":
+            args += ["-W", "/dev/null", "-S", SKIPFISH_DICTIONARY]
+        else:
+            args += ["-W", SKIPFISH_DICTIONARY]
         args += [self.configuration['target']]
         self.skipfish_stdout = ""
         self.skipfish_stderr = ""
