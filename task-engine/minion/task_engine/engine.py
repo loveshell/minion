@@ -253,6 +253,26 @@ class TaskEngineSession:
             if session['state'] in ('CREATED', 'STARTED', 'STOPPING'):
                 return False
         return True
+
+    @inlineCallbacks
+    def _stop_sessions(self):
+        for session in self.plugin_sessions:
+            # We are only interested in those sessions that are 
+            if session['state'] not in ('FINISHED', 'FAILED', 'STOPPED', 'STOPPING'):
+                try:
+                    # Get the latest session state
+                    url = "%s/session/%s" % (self.plugin_service_api, session['id'])
+                    response = yield getPage(url.encode('ascii')).addCallback(json.loads)
+                    session.update(response['session'])
+                    # If this session is not already STOPPING then we stop it
+                    if session['state'] != 'STOPPING':
+                        logging.debug("TaskEngineSession._periodic_session_task - Going to stop " + session['plugin']['class'])
+                        url = self.plugin_service_api + "/session/%s/state" % session['id']
+                        result = yield getPage(url.encode('ascii'), method='PUT', postdata='STOP').addCallback(json.loads)
+                except Exception as e:
+                    logging.exception("Failed to stop session %s: %s" % (session['id'], str(e)))
+                    # Mark the session as FAILED so that we won't look at it again
+                    session['state'] = 'FAILED'
     
     #
     # Periodically decide what to do in our workflow. We simply walk
@@ -264,25 +284,6 @@ class TaskEngineSession:
     def idle(self):
         logging.debug("TaskEngineSession._periodic_session_task")
 
-        def stop_sessions():
-            for session in self.plugin_sessions:
-                # We are only interested in those sessions that are 
-                if session['state'] not in ('FINISHED', 'FAILED', 'STOPPED', 'STOPPING'):
-                    try:
-                        # Get the latest session state
-                        url = "%s/session/%s" % (self.plugin_service_api, session['id'])
-                        response = yield getPage(url.encode('ascii')).addCallback(json.loads)
-                        session.update(response['session'])
-                        # If this session is not already STOPPING then we stop it
-                        if session['state'] != 'STOPPING':
-                            logging.debug("TaskEngineSession._periodic_session_task - Going to stop " + session['plugin']['class'])
-                            url = self.plugin_service_api + "/session/%s/state" % session['id']
-                            result = yield getPage(url.encode('ascii'), method='PUT', postdata='STOP').addCallback(json.loads)
-                    except Exception as e:
-                        logging.exception("Failed to stop session %s: %s" % (session['id'], str(e)))
-                        # Mark the session as FAILED so that we won't look at it again
-                        session['state'] = 'FAILED'
-
         try:
             # Skip sessions that are in their final finished state
             if self.state in ('FINISHED', 'FAILED', 'STOPPED'):
@@ -290,7 +291,7 @@ class TaskEngineSession:
 
             if self.state == 'STOPPING':
                 # Loop over all sessions and stop them if they are not already stopped.
-                stop_sessions()
+                yield self._stop_sessions()
 
             if self.state == 'STARTED':
                 # Loop over all sessions and figure out what to do next for them. We do only one thing
