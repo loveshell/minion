@@ -5,7 +5,7 @@
 from setuptools import setup
 
 install_requires = [
-    'requests==1.0.4',
+    'requests==2.20.0',
     'cyclone==1.0'
 ]
 
